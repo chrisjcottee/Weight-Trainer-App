@@ -12,7 +12,7 @@ Views.celebration = function() {
     headline = `Week ${c.weekIndex + 1} Done!`;
     icon = '🎉';
     iconBg = 'var(--accent)';
-    sub = `All ${state.program.template.length} days complete · ${workoutSummaryText(c.setCount, c.volume, c.skippedCount)}`;
+    sub = `All ${state.program.template.length} workouts complete · ${workoutSummaryText(c.setCount, c.volume, c.skippedCount)}`;
   } else if (c.fullyComplete) {
     headline = `${esc(c.dayName)} Done!`;
     icon = '✓';
@@ -22,7 +22,7 @@ Views.celebration = function() {
     headline = 'Workout Saved';
     icon = '◐';
     iconBg = 'var(--warn)';
-    sub = `${workoutSummaryText(c.setCount, c.volume, c.skippedCount)} · day not yet complete`;
+    sub = `${workoutSummaryText(c.setCount, c.volume, c.skippedCount)} · workout not yet complete`;
   }
 
   const timeline = (c.fullyComplete && !c.programComplete) ? weekTimelineHtml(c) : '';
@@ -77,7 +77,7 @@ function weekTimelineHtml(c) {
 
   const labels = names.map((name, i) => {
     const isDone = done.has(i);
-    const label = (name || '').trim() || `Day ${i + 1}`;
+    const label = (name || '').trim() || `Workout ${i + 1}`;
     return `<div class="week-tl-name${isDone ? ' done' : ''}">${esc(label)}</div>`;
   }).join('');
 

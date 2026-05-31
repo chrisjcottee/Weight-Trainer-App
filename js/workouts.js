@@ -13,7 +13,7 @@ function startWorkout(dayIndex) {
     programName: state.program.name,
     weekIndex: state.currentRun.weekIndex,
     dayIndex,
-    dayName: day.name || ('Day ' + (dayIndex + 1)),
+    dayName: day.name || ('Workout ' + (dayIndex + 1)),
     startedAt: Date.now(),
     exercises: day.exercises.map(e => ({
       name: e.name,

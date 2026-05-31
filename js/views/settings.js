@@ -31,7 +31,7 @@ function programLibraryRowHtml(program) {
     <div class="library-row" data-program-id="${esc(program.id)}">
       <div class="library-name">
         <div>${esc(program.name)}</div>
-        <div class="library-meta">${program.weeks} week${program.weeks === 1 ? '' : 's'} · ${program.template.length} day${program.template.length === 1 ? '' : 's'} each week</div>
+        <div class="library-meta">${program.weeks} week${program.weeks === 1 ? '' : 's'} · ${program.template.length} workout${program.template.length === 1 ? '' : 's'} each week</div>
       </div>
       ${isActive ? `<span class="badge success">Active</span>` : ''}
       <div class="library-actions">

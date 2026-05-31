@@ -29,13 +29,13 @@ Views.setup = function() {
       </label>
     </div>
 
-    <h2>Days each week</h2>
-    <p class="subtle" style="margin-top:-8px;">These days repeat every week. You can do them in any order.</p>
+    <h2>Workouts each week</h2>
+    <p class="subtle" style="margin-top:-8px;">These workouts repeat every week. You can do them in any order.</p>
     <div id="days">
       ${setupDraft.days.map((d, i) => dayEditorHtml(d, i)).join('')}
     </div>
 
-    <button class="btn secondary" id="add-day" style="margin-top:8px;">+ Add Day</button>
+    <button class="btn secondary" id="add-day" style="margin-top:8px;">+ Add Workout</button>
 
     <div style="height:24px"></div>
 
@@ -55,8 +55,8 @@ function dayEditorHtml(day, i) {
   return `
     <div class="day-editor" data-day="${i}">
       <div class="row between" style="margin-bottom:12px;">
-        <input type="text" class="day-name" value="${esc(day.name)}" placeholder="Day ${i + 1} name (e.g. Push)" style="font-weight:600;">
-        ${setupDraft.days.length > 1 ? `<button class="btn icon" data-act="rm-day" title="Remove day">×</button>` : ''}
+        <input type="text" class="day-name" value="${esc(day.name)}" placeholder="Workout ${i + 1} name (e.g. Push)" style="font-weight:600;">
+        ${setupDraft.days.length > 1 ? `<button class="btn icon" data-act="rm-day" title="Remove workout">×</button>` : ''}
       </div>
       <div class="exercises">
         ${day.exercises.map((e, j) => exEditorHtml(e, j)).join('')}
