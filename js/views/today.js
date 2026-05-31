@@ -2,13 +2,7 @@ Views.today = function() {
   const lvl = levelFromXp(state.stats.xp);
   const program = state.program;
   const totalWeeks = program.weeks;
-  const template = program.template;
   const selectedWeek = ensureTodaySelection();
-  const completedWeeks = Math.min(state.currentRun.weekIndex || 0, totalWeeks);
-  const activeWeekDone = programIsComplete() ? 0 : state.currentRun.completedDayIndices.length;
-  const overallDone = completedWeeks * template.length + activeWeekDone;
-  const overallTotal = Math.max(1, totalWeeks * template.length);
-  const overallPct = Math.min(100, Math.round(overallDone / overallTotal * 100));
 
   return `
     <div class="today-header">
@@ -17,13 +11,13 @@ Views.today = function() {
     </div>
 
     ${programIsComplete() ? programCompleteBannerHtml(program) : ''}
-    ${programStatusHtml(program, selectedWeek, totalWeeks, overallPct, lvl)}
+    ${programStatusHtml(program, selectedWeek, totalWeeks, lvl)}
 
     ${selectedWeekDayStepperHtml(selectedWeek)}
   `;
 };
 
-function programStatusHtml(program, selectedWeek, totalWeeks, overallPct, lvl) {
+function programStatusHtml(program, selectedWeek, totalWeeks, lvl) {
   const dayCount = program.template.length;
   const selectedDone = completedDayCountForWeek(selectedWeek);
   const activeLabel = programIsComplete()
@@ -46,10 +40,6 @@ function programStatusHtml(program, selectedWeek, totalWeeks, overallPct, lvl) {
         </div>
       </div>
       ${weekStepperHtml(selectedWeek)}
-      <div class="program-progress">
-        <div class="progress-bar"><div class="fill" style="width:${overallPct}%"></div></div>
-        <span class="progress-label">${overallPct}% complete</span>
-      </div>
     </div>
   `;
 }

@@ -850,19 +850,6 @@
     line-height: 1;
   }
   .week-step.selected .week-step-label { color: var(--accent); }
-  .program-progress {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 12px;
-  }
-  .program-progress .progress-bar { flex: 1; height: 6px; }
-  .program-progress .progress-label {
-    color: var(--text-dim);
-    font-size: 12px;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-  }
   .exercise-preview-list { margin: 10px 0 4px; }
   .exercise-preview-row {
     display: grid;
