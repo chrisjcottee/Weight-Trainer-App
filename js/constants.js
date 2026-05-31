@@ -1,7 +1,7 @@
 'use strict';
 
 /* ---------- State ---------- */
-const APP_VERSION = 'v20 · inline dense';
+const APP_VERSION = 'v21 · sw cache fix';
 
 const EXERCISE_LIBRARY = [
   // Squat / quad
