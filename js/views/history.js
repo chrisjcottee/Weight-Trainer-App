@@ -18,7 +18,7 @@ Views.history = function() {
     ${sorted.map((s, idx) => `
       <div class="session-item">
         <div class="session-head">
-          <span class="ttl">${esc(s.dayName || 'Day ' + (s.dayIndex + 1))}</span>
+          <span class="ttl">${esc(s.dayName || 'Workout ' + (s.dayIndex + 1))}</span>
           <span class="subtle">${fmtDate(s.date)}</span>
         </div>
         <div class="subtle mono">Week ${(s.weekIndex ?? 0) + 1} · ${setCount(s.exercises)} sets · ${fmtNum(totalVolume(s.exercises))} kg total volume</div>

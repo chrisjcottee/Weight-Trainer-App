@@ -24,7 +24,7 @@ function programStatusHtml(program, selectedWeek, totalWeeks, lvl) {
       <div class="program-status-top">
         <div>
           <div class="program-name">${esc(program.name)}</div>
-          <div class="program-meta">${totalWeeks} weeks &middot; ${dayCount} days per week</div>
+          <div class="program-meta">${totalWeeks} weeks &middot; ${dayCount} workouts per week</div>
         </div>
         <div class="metric-chips">
           <span class="metric-chip">🔥 ${state.stats.streak}</span>
@@ -138,7 +138,7 @@ function legacyDayCardHtml(day, i, isJustCompleted = false) {
 
 function completedSessionDetailHtml(session) {
   if (!session) {
-    return `<div class="day-row-detail"><div class="faint">No session details saved for this day.</div></div>`;
+    return `<div class="day-row-detail"><div class="faint">No session details saved for this workout.</div></div>`;
   }
   return `
     <div class="day-row-detail">
@@ -182,7 +182,7 @@ function selectedWeekDayStepperHtml(weekIndex) {
           <div class="section-label">Week ${weekIndex + 1}</div>
           <h2>${status}</h2>
         </div>
-        <span class="badge ${status === 'Complete' ? 'success' : ''}">${complete}/${days.length} days</span>
+        <span class="badge ${status === 'Complete' ? 'success' : ''}">${complete}/${days.length} workouts</span>
       </div>
       <div class="day-stepper">
         ${days.map((day, i) => dayStepHtml(day, weekIndex, i)).join('')}
@@ -204,7 +204,7 @@ function dayStepHtml(day, weekIndex, dayIndex) {
   const statusText = done
     ? (session ? `Done ${fmtDate(session.date)} &middot; ${sessionSummaryText(session)}` : 'Done')
     : active
-      ? 'Active day'
+      ? 'Active workout'
       : `${exCount} exercises &middot; ${setCount} sets`;
   const badge = done
     ? (skipped ? `<span class="badge warn">${skipped} skipped</span>` : `<span class="badge success">Done</span>`)
@@ -215,14 +215,14 @@ function dayStepHtml(day, weekIndex, dayIndex) {
   return `
     <div class="day-step ${done ? 'completed' : ''} ${active ? 'active' : ''} ${expanded ? 'expanded' : ''}">
       <div class="day-step-rail">
-        <button class="day-step-circle" data-expand-day-key="${key}" aria-label="Toggle Day ${dayIndex + 1}">
+        <button class="day-step-circle" data-expand-day-key="${key}" aria-label="Toggle Workout ${dayIndex + 1}">
           ${done ? '&#10003;' : dayIndex + 1}
         </button>
       </div>
       <div class="day-step-body">
         <button class="day-step-summary" data-expand-day-key="${key}">
           <div class="day-step-copy">
-            <div class="day-step-eyebrow">Day ${dayIndex + 1}</div>
+            <div class="day-step-eyebrow">Workout ${dayIndex + 1}</div>
             <div class="day-step-name">${esc(day.name)}</div>
             <div class="day-step-meta">${statusText}</div>
           </div>

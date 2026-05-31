@@ -536,7 +536,7 @@ function saveSetup() {
   if (!cleanDays.length) {
     showModal({
       title: 'Add an exercise',
-      body: 'Your program needs at least one day with at least one exercise.',
+      body: 'Your program needs at least one workout with at least one exercise.',
       confirmText: 'OK',
       hideCancel: true,
       onConfirm: closeModal
@@ -544,7 +544,7 @@ function saveSetup() {
     return;
   }
 
-  cleanDays.forEach((d, i) => { if (!d.name) d.name = 'Day ' + (i + 1); });
+  cleanDays.forEach((d, i) => { if (!d.name) d.name = 'Workout ' + (i + 1); });
   cleanDays.forEach(d => d.exercises.forEach(e => ensureExerciseInLibrary(e.name)));
 
   const weeks = Math.max(1, parseInt(setupDraft.weeks) || 1);

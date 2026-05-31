@@ -2,11 +2,11 @@
 
 `weight-tracker/` contains a single-page PWA for following a structured weight-training program.
 
-- **Build your program** once: add days (Push, Pull, Legs, …) with exercises, target sets, reps, and weight.
-- **Today** shows the next scheduled day with a single *Start Workout* button.
+- **Build your program** once: add workouts (Push, Pull, Legs, …) with exercises, target sets, reps, and weight.
+- **Today** shows the next scheduled workout with a single *Start Workout* button.
 - During a workout, each set is one row: enter weight & reps → tap ✓ → next set is focused. Previous session values are shown as a one-tap "copy" chip.
-- Exercises auto-mark complete when all sets are logged; the day auto-completes when all exercises are done; the program completes when every day is done.
-- **Gamification**: XP per set/exercise/day/program, level (Lv ⌊√(XP/100)⌋), and a streak that counts consecutive completed program days.
+- Exercises auto-mark complete when all sets are logged; the workout auto-completes when all exercises are done; the program completes when every workout is done.
+- **Gamification**: XP per set/exercise/workout/program, level (Lv ⌊√(XP/100)⌋), and a streak that counts consecutive completed workout days.
 - **History** tab keeps every workout. **Program** tab lets you view or edit the plan.
 - Data is stored in browser `localStorage`. Works offline once installed (service worker caches the app shell).
 
