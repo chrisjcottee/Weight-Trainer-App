@@ -83,8 +83,8 @@ function skipExercise(exIdx) {
     save();
     render();
     requestAnimationFrame(() => {
-      const nextCard = document.querySelector('.ex-card:not(.done):not(.skipped):not(.pending)');
-      if (nextCard) nextCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const nextStep = document.querySelector('.ex-rail-step.active');
+      if (nextStep) nextStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   };
 
@@ -167,7 +167,8 @@ function logCurrentSet(row) {
   const w = parseFloat(row.querySelector('.set-w').value);
   const r = parseInt(row.querySelector('.set-r').value, 10);
   if (isNaN(w) || isNaN(r) || r <= 0) return;
-  const card = row.closest('.ex-card');
+  const card = row.closest('[data-ex-idx]');
+  if (!card) return;
   const exIdx = +card.dataset.exIdx;
   const ex = state.active.exercises[exIdx];
   ex.sets.push({ weight: w, reps: r, ts: Date.now() });
@@ -183,8 +184,8 @@ function logCurrentSet(row) {
       const stillSameEx = ex.sets.length < ex.targetSets;
       if (stillSameEx) next.focus();
       else {
-        const nextCard = document.querySelector('.ex-card:not(.done):not(.pending)');
-        if (nextCard) nextCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const nextStep = document.querySelector('.ex-rail-step.active');
+        if (nextStep) nextStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
   });

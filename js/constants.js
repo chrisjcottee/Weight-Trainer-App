@@ -1,7 +1,7 @@
 'use strict';
 
 /* ---------- State ---------- */
-const APP_VERSION = 'v19 · today stepper';
+const APP_VERSION = 'v20 · inline dense';
 
 const EXERCISE_LIBRARY = [
   // Squat / quad
