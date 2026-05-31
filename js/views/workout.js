@@ -1,78 +1,100 @@
 Views.workout = function() {
   const a = state.active;
-  const totalEx = a.exercises.length;
   const currentExIdx = a.exercises.findIndex(e => !exerciseIsResolved(e));
   const allDone = currentExIdx === -1;
-  const doneCount = a.exercises.filter(exerciseIsResolved).length;
+
+  const dots = a.exercises.map((e, i) => {
+    const done = exerciseIsComplete(e);
+    const skipped = !!e.skipped;
+    const cur = i === currentExIdx;
+    return `<div class="dot ${done ? 'done' : ''} ${skipped ? 'skipped' : ''} ${cur ? 'current' : ''}" data-jump="${i}"></div>`;
+  }).join('');
+
+  const steps = a.exercises.map((e, i) => exerciseRailStepHtml(e, i, currentExIdx)).join('');
 
   return `
     <div class="workout-top">
-      <div class="row">
-        <div>
-          <div class="subtle">Week ${a.weekIndex + 1} · ${esc(a.dayName)}</div>
-        </div>
+      <div style="margin-bottom:13px;">
+        <div class="section-label" style="margin-bottom:3px;">Week ${a.weekIndex + 1}</div>
+        <h1 class="workout-day-title">${esc(a.dayName)}</h1>
       </div>
-      <div class="dots">
-        ${a.exercises.map((e, i) => {
-          const done = exerciseIsComplete(e);
-          const skipped = !!e.skipped;
-          const cur = i === currentExIdx;
-          return `<div class="dot ${done ? 'done' : ''} ${skipped ? 'skipped' : ''} ${cur ? 'current' : ''}" data-jump="${i}"></div>`;
-        }).join('')}
-      </div>
+      <div class="dots">${dots}</div>
     </div>
-
-    ${a.exercises.map((e, i) => exerciseCardHtml(e, i, currentExIdx)).join('')}
-
+    <div class="card">
+      <div class="ex-rail">${steps}</div>
+    </div>
     <div class="workout-bottom">
       <div class="workout-bottom-inner">
-        <div class="row between" style="align-items:center; gap:12px;">
-          <span class="subtle" style="white-space:nowrap;">${doneCount} of ${totalEx} complete</span>
-          <button class="btn ${allDone ? 'success' : ''}" id="finish-workout" style="flex:1; max-width:200px;">${allDone ? 'Finish Workout ✓' : 'Finish'}</button>
-        </div>
+        <button class="btn ${allDone ? 'success' : ''}" id="finish-workout">${allDone ? 'Finish Workout ✓' : 'Finish Workout'}</button>
       </div>
     </div>
   `;
 };
 
-function exerciseCardHtml(ex, i, currentExIdx) {
+function exerciseRailStepHtml(ex, i, currentExIdx) {
   const complete = exerciseIsComplete(ex);
   const skipped = !!ex.skipped;
   const done = complete || skipped;
-  const pending = !done && i !== currentExIdx;
-  const isCurrent = i === currentExIdx;
-
-  let cardClass = 'ex-card';
-  if (complete) cardClass += ' done';
-  if (skipped) cardClass += ' skipped';
-  if (pending) cardClass += ' pending';
+  const isCurrent = !done && i === currentExIdx;
+  const name = esc(ex.name);
 
   if (done) {
+    const cls = ['ex-rail-step', skipped ? 'skipped' : 'completed', 'dense-collapsed'].join(' ');
+    const circle = skipped ? '–' : '✓';
+    const badge = skipped
+      ? `<span class="badge warn">${ex.sets.length ? 'Skipped rest' : 'Skipped'}</span>`
+      : `<span class="badge success">${ex.sets.length}/${ex.targetSets} ✓</span>`;
     const summary = skipped
-      ? (ex.sets.length ? `${sessionExerciseSetSummary(ex)} · skipped rest` : 'Skipped')
+      ? (ex.sets.length ? `${esc(sessionExerciseSetSummary(ex))} · skipped rest` : 'Skipped this session')
       : ex.sets.map(s => `${fmtNum(s.weight)}×${s.reps}`).join(' · ');
     return `
-      <div class="${cardClass}" data-ex-idx="${i}">
-        <div class="ex-header">
-          <div class="name">${esc(ex.name)}</div>
-          <div class="progress mono">${skipped ? 'Skipped' : `${ex.sets.length}/${ex.targetSets}`}</div>
-          <div class="check">${skipped ? '–' : '✓'}</div>
+      <div class="${cls}" data-ex-idx="${i}">
+        <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
+        <div class="ex-rail-body">
+          <div class="dense-line">
+            <div class="ex-rail-name">${name}</div>
+            ${badge}
+          </div>
+          <div class="dense-summary">${summary}</div>
         </div>
-        <div class="ex-summary">${summary}</div>
       </div>
     `;
   }
 
-  return `
-    <div class="${cardClass}" data-ex-idx="${i}">
-      <div class="ex-header">
-        <div class="name">${esc(ex.name)}</div>
-        <div class="progress mono">${ex.sets.length}/${ex.targetSets}</div>
-        ${isCurrent ? `<button class="btn ghost small skip-ex-btn" data-act="skip-ex" data-ex-idx="${i}">${ex.sets.length ? 'Skip Rest' : 'Skip'}</button>` : ''}
+  if (isCurrent) {
+    const skipLabel = ex.sets.length ? 'Skip Rest' : 'Skip';
+    return `
+      <div class="ex-rail-step active" data-ex-idx="${i}">
+        <div class="ex-rail-node"><span class="ex-rail-circle">${i + 1}</span></div>
+        <div class="ex-rail-body">
+          <div class="dense-line">
+            <div style="min-width:0;">
+              <div class="rail-eyebrow active">In progress</div>
+              <div class="ex-rail-name" style="font-size:17px;">${name}</div>
+            </div>
+            <div class="row" style="gap:6px;">
+              <span class="badge">${ex.sets.length}/${ex.targetSets}</span>
+              <button class="btn ghost small skip-ex-btn" data-act="skip-ex" data-ex-idx="${i}">${skipLabel}</button>
+            </div>
+          </div>
+          <div class="ex-rail-meta" style="margin:2px 0 0;">Target ${ex.targetSets} × ${ex.targetReps}</div>
+          <div class="sets-modern">
+            ${Array.from({length: ex.targetSets}, (_, si) => setRowHtml(ex, i, si, true)).join('')}
+          </div>
+        </div>
       </div>
-      <div class="ex-target">Target: ${ex.targetSets} × ${ex.targetReps}</div>
-      <div class="sets">
-        ${Array.from({length: ex.targetSets}, (_, si) => setRowHtml(ex, i, si, isCurrent)).join('')}
+    `;
+  }
+
+  // Pending — collapsed
+  return `
+    <div class="ex-rail-step upcoming dense-collapsed" data-ex-idx="${i}">
+      <div class="ex-rail-node"><span class="ex-rail-circle">${i + 1}</span></div>
+      <div class="ex-rail-body">
+        <div class="dense-line">
+          <div class="ex-rail-name">${name}</div>
+          <span class="badge muted">${ex.targetSets} × ${ex.targetReps}</span>
+        </div>
       </div>
     </div>
   `;
@@ -101,10 +123,10 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
   if (logged) {
     return `
       <div class="set-row logged" data-edit-set="${exIdx},${si}">
-        <span class="lbl">${si + 1} ✓</span>
+        <span class="lbl">${si + 1}</span>
         <span class="val">${fmtNum(logged.weight)} kg</span>
         <span class="val">× ${logged.reps}</span>
-        <span class="edit-set-btn" aria-hidden="true">✎</span>
+        <span class="set-check" aria-hidden="true">✓</span>
       </div>
     `;
   }
@@ -131,11 +153,7 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
       <input type="tel" inputmode="decimal" class="set-w" value="${wHasValue ? wPrefill : ''}" placeholder="kg" autocomplete="off" maxlength="6">
       ${repsStepperHtml(rPrefill)}
       <button class="log-btn"${wHasValue ? '' : ' disabled'}>✓</button>
-      ${last ? `
-        <div class="last-ref">
-          <span class="last-chip static">Last: ${fmtNum(last.weight)} kg × ${last.reps}</span>
-        </div>
-      ` : ''}
+      ${last ? `<div class="last-chip static">Last: ${fmtNum(last.weight)} kg × ${last.reps}</div>` : ''}
     </div>
   `;
 }
@@ -150,4 +168,3 @@ function repsStepperHtml(value) {
     </div>
   `;
 }
-

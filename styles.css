@@ -230,202 +230,188 @@
   .dot.done { background: var(--success); }
   .dot.skipped { background: var(--warn); }
 
-  /* Exercise card */
-  .ex-card {
-    background: var(--card);
-    border-radius: var(--radius);
-    margin-bottom: 10px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
-    transition: opacity 0.15s;
+  /* ════════════════════════════════════════════════════════════
+     Inline-Dense workout: vertical exercise rail + modern soft-row
+     set logger. Done and skipped exercises collapse to a single
+     line; the current exercise expands as the focus.
+     ════════════════════════════════════════════════════════════ */
+
+  /* Bold workout day title with WEEK eyebrow */
+  .workout-day-title {
+    font-size: 30px; font-weight: 700; line-height: 1.05;
+    letter-spacing: -0.02em; margin: 0; color: var(--text);
   }
-  .ex-card.pending { opacity: 0.55; }
-  .ex-card.done .ex-header { background: var(--success-dim); }
-  .ex-card.skipped .ex-header { background: #fff4e5; }
-  .ex-card.skipped .check { background: var(--warn); }
-  .ex-header {
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+
+  /* Exercise rail */
+  .ex-rail { margin-top: 4px; }
+  .ex-rail-step {
+    display: grid; grid-template-columns: 32px 1fr; gap: 12px; position: relative;
   }
-  .ex-header .name { flex: 1; font-weight: 600; font-size: 16px; }
-  .ex-header .progress {
-    font-size: 13px;
-    color: var(--text-dim);
-    font-variant-numeric: tabular-nums;
+  .ex-rail-step:not(:last-child) .ex-rail-node::after {
+    content: ""; position: absolute; top: 32px; bottom: -10px; left: 15px;
+    width: 2px; background: var(--border);
   }
-  .ex-header .check {
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: var(--success);
-    color: white;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-    font-weight: 700;
+  .ex-rail-step.completed:not(:last-child) .ex-rail-node::after { background: var(--success); }
+  .ex-rail-step.skipped:not(:last-child) .ex-rail-node::after { background: var(--warn); }
+  .ex-rail-node { position: relative; display: flex; justify-content: center; padding-top: 0; }
+  .ex-rail-circle {
+    position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--card); color: var(--text-dim);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0;
   }
-  .ex-target { font-size: 13px; color: var(--text-dim); padding: 0 16px 12px; }
-  .ex-summary { font-size: 13px; color: var(--text-dim); padding: 0 16px 12px; font-variant-numeric: tabular-nums; }
+  .ex-rail-step.completed .ex-rail-circle { background: var(--success); border-color: var(--success); color: white; }
+  .ex-rail-step.active .ex-rail-circle { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 0 0 5px var(--accent-dim); animation: wt-pulse-accent 2.6s ease-in-out infinite; }
+  .ex-rail-step.skipped .ex-rail-circle { background: var(--warn); border-color: var(--warn); color: white; }
+  .ex-rail-body { min-width: 0; padding-bottom: 18px; }
+  .ex-rail-step:last-child .ex-rail-body { padding-bottom: 0; }
+  .ex-rail-name { font-size: 15px; font-weight: 600; line-height: 1.25; }
+  .ex-rail-step.upcoming .ex-rail-name { color: var(--text-dim); }
+  .ex-rail-meta { color: var(--text-dim); font-size: 13px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+  /* Tight collapsed rows in the rail */
+  .dense-collapsed { padding-bottom: 12px; }
+  .dense-collapsed .ex-rail-name { font-size: 15px; }
+  .dense-line {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0;
+  }
+  .dense-summary {
+    color: var(--text-dim); font-size: 12.5px; margin-top: 2px; font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dense-collapsed.completed .dense-summary { color: var(--success); }
+  .dense-collapsed.skipped .dense-summary { color: var(--warn); }
+  .ex-rail-step.dense-collapsed .dense-line { min-height: 32px; }
+  .rail-eyebrow { color: var(--text-dim); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .rail-eyebrow.active { color: var(--accent); }
   .skip-ex-btn { flex-shrink: 0; }
 
-  /* Set rows */
-  .sets { padding: 0 12px 12px; }
+  /* Active node pulse */
+  @keyframes wt-pulse-accent { 0%, 100% { box-shadow: 0 0 0 5px var(--accent-dim); } 50% { box-shadow: 0 0 0 8px var(--accent-dim); } }
+
+  /* Modern soft-row set logger */
+  .sets, .sets-modern {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-top: 9px; padding: 0;
+  }
   .set-row {
     display: grid;
-    grid-template-columns: 48px 1fr 1fr 56px;
-    gap: 8px;
+    grid-template-columns: 26px 1fr 1fr 44px;
+    gap: 9px;
     align-items: center;
-    padding: 10px 4px;
-    border-top: 1px solid var(--border);
-  }
-  .set-row:first-child { border-top: none; }
-  .set-row .lbl { font-size: 13px; color: var(--text-dim); font-weight: 600; }
-  .set-row.logged {
-    color: var(--text);
-  }
-  .set-row.logged .val {
-    font-size: 16px;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-  }
-  .set-row.logged .lbl { color: var(--success); }
-  .set-row.pending { color: var(--text-faint); }
-  .set-row.pending .val {
-    font-size: 14px;
-    color: var(--text-faint);
-    font-variant-numeric: tabular-nums;
-  }
-  .set-row.active input,
-  .set-row.editing input {
-    height: 44px;
-    padding: 0 12px;
-    text-align: center;
-    font-size: 17px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
     background: var(--bg);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
+    border-radius: 11px;
+    padding: 8px 11px;
+    border: 0;
     box-sizing: border-box;
   }
-  .set-row.active .log-btn {
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: var(--radius-sm);
-    height: 44px;
-    font-size: 20px;
-    cursor: pointer;
-    font-weight: 700;
-    box-sizing: border-box;
+  .set-row .lbl {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--card); color: var(--text-dim);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
   }
-  .set-row.active .log-btn:disabled {
-    background: var(--border);
-    color: var(--text-faint);
-  }
+  .set-row .val { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .set-row.logged {
+    background: var(--success-dim);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: background 0.12s ease;
-    border-radius: var(--radius-sm);
+    transition: filter 0.12s ease;
   }
-  .set-row.logged:active { background: var(--bg); }
-  .edit-set-btn {
-    color: var(--text-faint);
-    font-size: 18px;
+  .set-row.logged:active { filter: brightness(0.96); }
+  .set-row.logged .lbl { background: var(--success); color: white; }
+  .set-row.logged .val { color: var(--text); }
+  .set-row.pending { opacity: 0.7; }
+  .set-row.pending .val { color: var(--text-faint); font-weight: 500; }
+  .set-row .set-check {
     justify-self: end;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--success); color: white;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .edit-set-btn {
+    justify-self: end;
+    color: var(--text-faint); font-size: 16px;
     pointer-events: none;
   }
+  .set-row.active { background: var(--accent-dim); padding: 7px 8px; }
+  .set-row.active .lbl { background: var(--accent); color: white; }
   .set-row.editing {
-    grid-template-columns: 48px 1fr 1fr 96px;
-    background: var(--accent-dim);
-    border-radius: var(--radius-sm);
-    padding: 8px;
+    background: var(--accent-dim); padding: 7px 8px;
+    grid-template-columns: 26px 1fr 1fr 88px;
   }
-  .set-row.editing .edit-actions {
-    display: flex;
-    gap: 4px;
-  }
-  .set-row.editing .edit-actions .log-btn,
-  .set-row.editing .edit-actions .cancel-btn {
-    flex: 1;
-    border: none;
-    border-radius: var(--radius-sm);
-    height: 44px;
-    font-size: 20px;
+  .set-row.editing .lbl { background: var(--accent); color: white; }
+
+  /* Active / editing weight input */
+  .set-row.active .set-w,
+  .set-row.editing .set-w {
+    height: 40px;
+    background: var(--card);
+    border: 1.5px solid var(--accent);
+    border-radius: 9px;
+    text-align: center;
+    font-size: 17px;
     font-weight: 700;
-    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    padding: 0 8px;
+    color: var(--text);
     box-sizing: border-box;
   }
-  .set-row.editing .edit-actions .log-btn {
-    background: var(--accent);
-    color: white;
-  }
-  .set-row.editing .edit-actions .log-btn:disabled {
-    background: var(--border);
-    color: var(--text-faint);
-  }
-  .set-row.editing .edit-actions .cancel-btn {
-    background: white;
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-  }
-  .last-ref {
-    grid-column: 2 / 5;
-    margin-top: -4px;
-    padding-bottom: 8px;
-  }
-  .last-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--bg);
-    color: var(--text-dim);
-    font-size: 12px;
-    padding: 5px 10px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    font-variant-numeric: tabular-nums;
-  }
-  .last-chip.static { cursor: default; }
-  .last-chip .copy { color: var(--accent); font-weight: 600; }
 
-  /* Compact reps stepper in workout set rows */
+  /* Reps stepper inside set rows */
   .set-row .reps-stepper {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 44px;
-    background: var(--bg);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: space-between;
+    height: 40px;
+    background: var(--card);
+    border-radius: 9px;
     padding: 2px;
+    border: 0;
     min-width: 0;
     box-sizing: border-box;
   }
   .set-row .reps-stepper .step-btn {
-    width: 40px; height: 38px;
-    font-size: 20px;
-    color: var(--accent);
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-sm);
-    flex-shrink: 0;
-    cursor: pointer;
+    width: 34px; height: 34px; font-size: 19px;
+    color: var(--accent); background: transparent;
+    border: none; border-radius: 8px;
+    flex-shrink: 0; cursor: pointer;
   }
   .set-row .reps-stepper .step-btn:active { background: var(--accent-dim); }
   .set-row .reps-stepper .step-val {
-    flex: 1;
-    text-align: center;
-    font-size: 17px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    min-width: 24px;
+    flex: 1; text-align: center;
+    font-size: 16px; font-weight: 700;
+    font-variant-numeric: tabular-nums; min-width: 24px;
   }
-  .set-row.editing .reps-stepper {
-    background: white;
+
+  /* Save / cancel buttons in active and editing rows */
+  .set-row.active .log-btn {
+    height: 40px;
+    background: var(--accent); color: white;
+    border: 0; border-radius: 9px;
+    font-size: 19px; font-weight: 700;
+    cursor: pointer; box-sizing: border-box;
+  }
+  .set-row.active .log-btn:disabled { background: var(--border); color: var(--text-faint); }
+  .set-row.editing .edit-actions { display: flex; gap: 4px; }
+  .set-row.editing .edit-actions .log-btn,
+  .set-row.editing .edit-actions .cancel-btn {
+    flex: 1; height: 40px; border: 0; border-radius: 9px;
+    font-size: 19px; font-weight: 700; cursor: pointer; box-sizing: border-box;
+  }
+  .set-row.editing .edit-actions .log-btn { background: var(--accent); color: white; }
+  .set-row.editing .edit-actions .log-btn:disabled { background: var(--border); color: var(--text-faint); }
+  .set-row.editing .edit-actions .cancel-btn { background: var(--card); color: var(--text-dim); border: 1px solid var(--border); }
+
+  /* "Last time" reference below the active row */
+  .last-chip,
+  .last-chip.static {
+    display: block;
+    grid-column: 1 / -1;
+    background: transparent; color: var(--text-dim);
+    font-size: 12px; padding: 4px 4px 0;
+    border: 0; border-radius: 0;
+    font-family: inherit; cursor: default;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Bottom bar in workout */
