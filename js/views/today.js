@@ -19,19 +19,12 @@ Views.today = function() {
 
 function programStatusHtml(program, selectedWeek, totalWeeks, lvl) {
   const dayCount = program.template.length;
-  const selectedDone = completedDayCountForWeek(selectedWeek);
-  const activeLabel = programIsComplete()
-    ? `All ${totalWeeks} weeks completed`
-    : `Active Week ${(state.currentRun.weekIndex || 0) + 1} of ${totalWeeks}`;
-  const viewingLabel = selectedWeek === currentWeekIndex()
-    ? activeLabel
-    : `Viewing Week ${selectedWeek + 1} of ${totalWeeks}`;
   return `
     <div class="card program-status">
       <div class="program-status-top">
         <div>
           <div class="program-name">${esc(program.name)}</div>
-          <div class="program-meta">${viewingLabel} &middot; ${selectedDone} of ${dayCount} days done</div>
+          <div class="program-meta">${totalWeeks} weeks &middot; ${dayCount} days per week</div>
         </div>
         <div class="metric-chips">
           <span class="metric-chip">🔥 ${state.stats.streak}</span>
