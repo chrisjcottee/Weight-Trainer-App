@@ -1,5 +1,6 @@
 Views.workout = function() {
   const a = state.active;
+  if (!a) return workoutEmptyHtml();
   const currentExIdx = a.exercises.findIndex(e => !exerciseIsResolved(e));
   const allDone = currentExIdx === -1;
 
@@ -30,6 +31,24 @@ Views.workout = function() {
     </div>
   `;
 };
+
+function workoutEmptyHtml() {
+  const complete = programIsComplete();
+  const next = complete ? -1 : nextDayIndex();
+  const day = (next >= 0 && state.program) ? state.program.template[next] : null;
+  const upNext = day
+    ? `<div class="faint" style="margin-top:8px;">Up next: ${esc(day.name || 'Workout ' + (next + 1))}</div>`
+    : `<div class="faint" style="margin-top:8px;">${complete ? 'Program complete.' : 'Start one from Today.'}</div>`;
+  return `
+    <h1>Workout</h1>
+    <div class="empty">
+      <div class="ico">💪</div>
+      <div>No active workout.</div>
+      ${upNext}
+      <button class="btn" data-tab="today" style="margin-top:18px; max-width:260px;">Go to Today</button>
+    </div>
+  `;
+}
 
 function exerciseRailStepHtml(ex, i, currentExIdx) {
   const complete = exerciseIsComplete(ex);

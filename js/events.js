@@ -261,6 +261,8 @@ function onClick(e) {
         : dayKey(selectedWeekIndex, c.dayIndex);
     }
     state.celebration = null;
+    // The session is over — return to Today rather than the empty Workout tab.
+    state.tab = 'today';
     save();
     render();
     return;

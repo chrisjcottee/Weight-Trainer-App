@@ -35,8 +35,9 @@
     margin: 0 auto;
     padding: calc(16px + var(--safe-top)) 16px calc(var(--tab-h) + var(--safe-bottom) + 16px);
   }
-  #app.fullscreen {
-    padding-bottom: calc(var(--safe-bottom) + 96px);
+  /* Active workout log: clear both the Finish bar and the tab bar below it. */
+  #app.workout-mode {
+    padding-bottom: calc(var(--safe-bottom) + var(--tab-h) + 88px);
   }
 
   /* Typography */
@@ -145,8 +146,23 @@
     padding: 8px 4px;
     font-family: inherit;
   }
-  .tab .ico { font-size: 22px; line-height: 1; }
+  .tab .ico { font-size: 22px; line-height: 1; position: relative; }
   .tab.active { color: var(--accent); }
+  /* Pulsing dot on the Workout tab while a session is in progress */
+  .tab.has-session .ico::after {
+    content: '';
+    position: absolute;
+    top: -1px; right: -7px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 2px var(--card);
+    animation: session-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes session-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
 
   /* Stat row */
   .stats {
@@ -423,7 +439,7 @@
   /* Bottom bar in workout */
   .workout-bottom {
     position: fixed;
-    bottom: var(--safe-bottom);
+    bottom: calc(var(--safe-bottom) + var(--tab-h));
     left: 0; right: 0;
     background: rgba(255,255,255,0.92);
     backdrop-filter: saturate(180%) blur(20px);
@@ -438,7 +454,7 @@
   .rest-bar {
     position: fixed;
     left: 0; right: 0;
-    bottom: calc(var(--safe-bottom) + 68px);
+    bottom: calc(var(--safe-bottom) + var(--tab-h) + 68px);
     z-index: 39;
     overflow: hidden;
     background: var(--card);

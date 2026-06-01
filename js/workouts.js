@@ -23,6 +23,7 @@ function startWorkout(dayIndex) {
       skipped: false
     }))
   };
+  state.tab = 'workout';
   save();
   render();
 }
@@ -120,7 +121,7 @@ function endWorkoutFlow() {
         state.active = null;
         editingSet = null;
         closeModal();
-        setState({});
+        setState({ tab: 'today' });
       }
     });
     return;
@@ -142,7 +143,7 @@ function endWorkoutFlow() {
         state.active = null;
         editingSet = null;
         closeModal();
-        setState({});
+        setState({ tab: 'today' });
       }
     }
   });
