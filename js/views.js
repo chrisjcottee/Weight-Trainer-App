@@ -15,6 +15,8 @@ function render() {
     body += `<div class="version-stamp">${APP_VERSION}</div>`;
   }
   app.innerHTML = body;
+  // The rest timer only belongs to an active workout; clear it elsewhere.
+  if (view !== 'workout' && typeof stopRest === 'function') stopRest();
   app.classList.toggle('fullscreen', view === 'workout');
   const showTabs = view === 'today' || view === 'program' || view === 'history';
   tabs.hidden = !showTabs;

@@ -153,7 +153,7 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
       <input type="tel" inputmode="decimal" class="set-w" value="${wHasValue ? wPrefill : ''}" placeholder="kg" autocomplete="off" maxlength="6">
       ${repsStepperHtml(rPrefill)}
       <button class="log-btn"${wHasValue ? '' : ' disabled'}>✓</button>
-      ${last ? `<div class="last-chip static">Last: ${fmtNum(last.weight)} kg × ${last.reps}</div>` : ''}
+      ${last ? `<button type="button" class="last-chip" data-fill-last data-w="${last.weight}" data-r="${last.reps}">Last: ${fmtNum(last.weight)} kg × ${last.reps} · tap to use</button>` : ''}
     </div>
   `;
 }

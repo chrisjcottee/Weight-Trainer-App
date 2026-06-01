@@ -20,6 +20,32 @@ function onClick(e) {
     return;
   }
 
+  // Rest timer controls
+  const restBtn = e.target.closest('[data-rest]');
+  if (restBtn) {
+    const v = restBtn.dataset.rest;
+    if (v === 'skip') stopRest();
+    else adjustRest(parseInt(v, 10));
+    return;
+  }
+
+  // "Last time" chip — fill the active set with the previous values
+  const fillBtn = e.target.closest('[data-fill-last]');
+  if (fillBtn) {
+    const row = fillBtn.closest('.set-row.active');
+    if (row) {
+      const wInput = row.querySelector('.set-w');
+      const rHidden = row.querySelector('.set-r');
+      const rDisplay = row.querySelector('.reps-stepper .step-val');
+      if (wInput) wInput.value = fillBtn.dataset.w;
+      if (rHidden) rHidden.value = fillBtn.dataset.r;
+      if (rDisplay) rDisplay.textContent = fillBtn.dataset.r;
+      row.dataset.dirty = '1';
+      updateLogBtn(row);
+    }
+    return;
+  }
+
   // Setup screen
   if (e.target.classList.contains('step-btn')) {
     if (e.target.closest('.set-row')) {

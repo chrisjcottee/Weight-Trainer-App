@@ -402,16 +402,22 @@
   .set-row.editing .edit-actions .log-btn:disabled { background: var(--border); color: var(--text-faint); }
   .set-row.editing .edit-actions .cancel-btn { background: var(--card); color: var(--text-dim); border: 1px solid var(--border); }
 
-  /* "Last time" reference below the active row */
-  .last-chip,
-  .last-chip.static {
-    display: block;
-    grid-column: 1 / -1;
-    background: transparent; color: var(--text-dim);
-    font-size: 12px; padding: 4px 4px 0;
-    border: 0; border-radius: 0;
-    font-family: inherit; cursor: default;
+  /* "Last time" reference below the active row — tap to copy into the set */
+  .last-chip {
+    display: inline-flex; align-items: center;
+    grid-column: 1 / -1; justify-self: start;
+    margin-top: 4px;
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 12px; padding: 5px 10px;
+    border: 0; border-radius: 999px;
+    font-family: inherit; cursor: pointer;
     font-variant-numeric: tabular-nums;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .last-chip:active { transform: scale(0.96); }
+  .last-chip.static {
+    background: transparent; color: var(--text-dim);
+    padding: 4px 4px 0; cursor: default;
   }
 
   /* Bottom bar in workout */
@@ -427,6 +433,55 @@
     z-index: 40;
   }
   .workout-bottom-inner { max-width: 640px; margin: 0 auto; }
+
+  /* Rest timer bar — sits just above the Finish bar */
+  .rest-bar {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(var(--safe-bottom) + 68px);
+    z-index: 39;
+    overflow: hidden;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+  }
+  .rest-fill {
+    position: absolute; inset: 0 auto 0 0;
+    background: var(--accent-dim);
+    transition: width 1s linear;
+    z-index: 0;
+  }
+  .rest-bar.done .rest-fill { background: rgba(52,199,89,0.18); }
+  .rest-inner {
+    position: relative; z-index: 1;
+    max-width: 640px; margin: 0 auto;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 16px;
+  }
+  .rest-mid {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; line-height: 1.1;
+  }
+  .rest-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-dim);
+  }
+  .rest-bar.done .rest-label { color: var(--success); }
+  .rest-time {
+    font-size: 20px; font-weight: 600;
+    font-variant-numeric: tabular-nums; color: var(--text);
+  }
+  .rest-btn {
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text-dim); font-family: inherit;
+    font-size: 13px; font-weight: 600;
+    padding: 7px 11px; border-radius: 10px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rest-btn:active { transform: scale(0.95); }
+  .rest-btn.skip { color: var(--accent); }
+  .rest-bar.done .rest-btn.skip { background: var(--success); color: #fff; border-color: var(--success); }
 
   /* Setup */
   .day-editor {
