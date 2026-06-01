@@ -961,6 +961,21 @@
   }
   .library-row.editing input { flex: 1; background: white; }
 
+  /* Prebuilt template rows (expandable preview) */
+  .library-row.template-row { flex-direction: column; align-items: stretch; padding: 0; }
+  .template-summary {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; background: transparent; border: 0;
+    padding: 12px 0; cursor: pointer; font-family: inherit;
+    text-align: left; color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .template-summary .library-name { flex: 1; min-width: 0; font-weight: 500; }
+  .template-summary .library-meta { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+  .template-preview { padding: 2px 0 14px; }
+  .template-day { margin-bottom: 12px; }
+  .template-day-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+
   .week-pip {
     width: 28px; height: 28px;
     border-radius: 50%;

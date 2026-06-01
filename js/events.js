@@ -128,6 +128,43 @@ function onClick(e) {
     return;
   }
 
+  // Start (choice) screen
+  if (e.target.id === 'start-create') {
+    setupDraft = { id: null, name: 'My Program', weeks: 8, days: [makeDay()], makeActive: true };
+    state.editing = true;
+    save();
+    render();
+    return;
+  }
+  const toggleTpl = e.target.closest && e.target.closest('[data-act="toggle-template"]');
+  if (toggleTpl) {
+    const row = toggleTpl.closest('[data-template-id]');
+    const id = row && row.dataset.templateId;
+    expandedTemplateId = (expandedTemplateId === id) ? null : id;
+    render();
+    return;
+  }
+  if (e.target.dataset.act === 'use-template') {
+    const id = e.target.dataset.templateId;
+    const tpl = findPrebuiltProgram(id);
+    if (!tpl) return;
+    showModal({
+      title: `Use ${tpl.name}?`,
+      body: 'This adds an editable copy to your library and makes it your active program, starting from Week 1.',
+      confirmText: 'Use Program',
+      onConfirm: () => {
+        if (useTemplateProgram(id)) {
+          expandedTemplateId = null;
+          closeModal();
+          setState({ tab: 'today' });
+        } else {
+          closeModal();
+        }
+      }
+    });
+    return;
+  }
+
   // Program tab
   if (e.target.id === 'add-program') {
     setupDraft = { id: null, name: 'New Program', weeks: 8, days: [makeDay()], makeActive: true };
