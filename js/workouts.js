@@ -172,22 +172,33 @@ function logCurrentSet(row) {
   const exIdx = +card.dataset.exIdx;
   const ex = state.active.exercises[exIdx];
   ex.sets.push({ weight: w, reps: r, ts: Date.now() });
-  const exJustCompleted = ex.sets.length === ex.targetSets;
-  buzz(exJustCompleted ? [20, 40, 20] : 12);
+  const stillSameEx = ex.sets.length < ex.targetSets;
+  buzz(stillSameEx ? 12 : [20, 40, 20]);
   save();
-  render();
-  // After render, focus the next active input if there is one
-  requestAnimationFrame(() => {
-    const next = document.querySelector('.set-row.active .set-w');
-    if (next && document.activeElement !== next) {
-      // Auto-focus only on same-exercise advance, to avoid hijacking when an exercise finishes
-      const stillSameEx = ex.sets.length < ex.targetSets;
-      if (stillSameEx) next.focus();
-      else {
-        const nextStep = document.querySelector('.ex-rail-step.active');
-        if (nextStep) nextStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+  startRest();
+
+  if (stillSameEx) {
+    // In-place advance: patch only this exercise's set rows + counter so the
+    // input stays responsive and we avoid re-rendering the whole rail.
+    const setsWrap = card.querySelector('.sets-modern');
+    if (setsWrap) {
+      setsWrap.innerHTML = Array.from({ length: ex.targetSets },
+        (_, si) => setRowHtml(ex, exIdx, si, true)).join('');
     }
+    const badge = card.querySelector('.dense-line .badge');
+    if (badge) badge.textContent = `${ex.sets.length}/${ex.targetSets}`;
+    requestAnimationFrame(() => {
+      const next = card.querySelector('.set-row.active .set-w');
+      if (next && document.activeElement !== next) next.focus();
+    });
+    return;
+  }
+
+  // Exercise finished — full render to collapse it and advance the rail.
+  render();
+  requestAnimationFrame(() => {
+    const nextStep = document.querySelector('.ex-rail-step.active');
+    if (nextStep) nextStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
 
