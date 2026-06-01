@@ -7,6 +7,12 @@ Views.program = function() {
       ${programLibraryHtml()}
     </div>
 
+    <h2>Ready-made programs</h2>
+    <div class="card">
+      <div class="subtle" style="margin-bottom:12px;">Add a copy of a prebuilt program to your library.</div>
+      ${programTemplateListHtml()}
+    </div>
+
     <h2>Exercise Library</h2>
     <div class="card">
       ${exerciseLibraryHtml()}

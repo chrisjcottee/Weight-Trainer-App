@@ -130,6 +130,28 @@ function setActiveProgram(id, opts = {}) {
   return true;
 }
 
+function prebuiltPrograms() {
+  return Array.isArray(PREBUILT_PROGRAMS) ? PREBUILT_PROGRAMS : [];
+}
+
+function findPrebuiltProgram(id) {
+  return prebuiltPrograms().find(p => p.id === id) || null;
+}
+
+// Clone a prebuilt template into the user's library as a fresh editable
+// program, then make it the active program starting from Week 1.
+function useTemplateProgram(id) {
+  const tpl = findPrebuiltProgram(id);
+  if (!tpl) return false;
+  state.programLibrary = normalizeProgramLibrary(state);
+  const program = { name: tpl.name, weeks: tpl.weeks, template: structuredClone(tpl.template) };
+  const record = makeProgramRecord(program);
+  state.programLibrary.unshift(record);
+  record.template.forEach(d => d.exercises.forEach(e => ensureExerciseInLibrary(e.name)));
+  setActiveProgram(record.id, { resetProgress: true });
+  return true;
+}
+
 function activeExerciseLibrary() {
   state.exerciseLibrary = normalizeExerciseLibrary(state);
   return state.exerciseLibrary

@@ -1,7 +1,10 @@
 /* ---------- Routing ---------- */
 function pickView() {
   if (state.celebration) return 'celebration';
-  if (!state.program || state.editing) return 'setup';
+  if (state.editing) return 'setup';
+  // No active program yet: offer the choice screen (create vs. pick a program)
+  // instead of dropping straight into the editor.
+  if (!state.program) return 'start';
   // The active workout now lives in its own tab, so honour state.tab and let
   // the user freely navigate in and out of the workout while a session runs.
   return state.tab;
