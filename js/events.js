@@ -262,6 +262,15 @@ function onClick(e) {
     skipExercise(exIdx);
     return;
   }
+  // Reopen a completed exercise in the rail to edit its logged sets
+  const toggleDone = e.target.closest && e.target.closest('[data-toggle-done]');
+  if (toggleDone) {
+    const idx = +toggleDone.dataset.toggleDone;
+    expandedExIdx = (expandedExIdx === idx) ? null : idx;
+    editingSet = null;
+    render();
+    return;
+  }
   const editEl = e.target.closest && e.target.closest('[data-edit-set]');
   if (editEl) {
     const [exIdx, setIdx] = editEl.dataset.editSet.split(',').map(Number);

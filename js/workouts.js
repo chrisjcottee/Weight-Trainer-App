@@ -6,6 +6,7 @@ function startWorkout(dayIndex) {
   const day = state.program.template[dayIndex];
   if (!day) return;
   editingSet = null;
+  expandedExIdx = null;
   selectedWeekIndex = state.currentRun.weekIndex || 0;
   expandedDayKey = dayKey(selectedWeekIndex, dayIndex);
   state.active = {
@@ -326,6 +327,7 @@ function finishWorkout(opts = {}) {
   else if (fullyComplete) buzz([30, 60, 30]);
   state.active = null;
   editingSet = null;
+  expandedExIdx = null;
   save();
   render();
 }

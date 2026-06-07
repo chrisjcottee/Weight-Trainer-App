@@ -58,23 +58,46 @@ function exerciseRailStepHtml(ex, i, currentExIdx) {
   const name = esc(ex.name);
 
   if (done) {
-    const cls = ['ex-rail-step', skipped ? 'skipped' : 'completed', 'dense-collapsed'].join(' ');
     const circle = skipped ? '–' : '✓';
     const badge = skipped
       ? `<span class="badge warn">${ex.sets.length ? 'Skipped rest' : 'Skipped'}</span>`
       : `<span class="badge success">${ex.sets.length}/${ex.targetSets} ✓</span>`;
+    // Only exercises with logged sets can be reopened to fix a typed value.
+    const editable = ex.sets.length > 0;
+    const expanded = editable && i === expandedExIdx;
+
+    if (expanded) {
+      return `
+        <div class="ex-rail-step ${skipped ? 'skipped' : 'completed'} expanded" data-ex-idx="${i}">
+          <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
+          <div class="ex-rail-body">
+            <div class="dense-line edit-toggle" data-toggle-done="${i}">
+              <div class="ex-rail-name">${name}</div>
+              ${badge}
+            </div>
+            <div class="ex-rail-meta" style="margin:2px 0 0;">Tap a set to edit · tap the title to close</div>
+            <div class="sets-modern">
+              ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const cls = ['ex-rail-step', skipped ? 'skipped' : 'completed', 'dense-collapsed'].join(' ');
     const summary = skipped
       ? (ex.sets.length ? `${esc(sessionExerciseSetSummary(ex))} · skipped rest` : 'Skipped this session')
       : ex.sets.map(s => `${fmtNum(s.weight)}×${s.reps}`).join(' · ');
+    const editAttr = editable ? ` data-toggle-done="${i}"` : '';
     return `
       <div class="${cls}" data-ex-idx="${i}">
         <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
-        <div class="ex-rail-body">
+        <div class="ex-rail-body${editable ? ' editable' : ''}"${editAttr}>
           <div class="dense-line">
             <div class="ex-rail-name">${name}</div>
             ${badge}
           </div>
-          <div class="dense-summary">${summary}</div>
+          <div class="dense-summary">${summary}${editable ? ' · tap to edit' : ''}</div>
         </div>
       </div>
     `;
