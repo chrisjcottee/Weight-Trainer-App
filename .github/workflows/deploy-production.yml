@@ -1,0 +1,74 @@
+name: Deploy production site
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v4
+        with:
+          path: site
+
+      - name: Prepare gh-pages branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" public; then
+            echo "Using existing gh-pages branch."
+          else
+            mkdir public
+            cd public
+            git init
+            git checkout --orphan gh-pages
+            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+            cd ..
+          fi
+
+      - name: Copy production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s dotglob nullglob
+
+          # Clear the production root while preserving PR preview folders.
+          for item in public/* public/.[!.]* public/..?*; do
+            base="$(basename "$item")"
+            if [[ "$base" != ".git" && "$base" != pr-* ]]; then
+              rm -rf "$item"
+            fi
+          done
+
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            site/ public/
+
+          touch public/.nojekyll
+
+      - name: Commit and push production deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd public
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No production deployment changes."
+          else
+            git commit -m "Deploy production site"
+            git push origin gh-pages
+          fi
