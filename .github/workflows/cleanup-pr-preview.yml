@@ -1,0 +1,44 @@
+name: Cleanup pull request preview
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  cleanup-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: public
+
+      - name: Remove preview folder
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd public
+          rm -rf "pr-${{ github.event.pull_request.number }}"
+
+      - name: Commit and push cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd public
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No preview cleanup changes."
+          else
+            git commit -m "Remove preview for PR #${{ github.event.pull_request.number }}"
+            git push origin gh-pages
+          fi
