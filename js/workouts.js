@@ -133,14 +133,25 @@ function addSet(exIdx) {
   });
 }
 
-// Swipe-to-delete a logged set.
+// Set the number of set rows an exercise shows, by deriving extraSets from it.
+function setExerciseSlots(ex, n) {
+  n = Math.max(1, ex.sets.length, n);
+  ex.extraSets = n - ex.targetSets;
+}
+
+// Swipe-to-delete a set. A logged set is removed; an unlogged (active or
+// upcoming) slot just trims the exercise's planned set count by one.
 function removeSet(exIdx, si) {
   const a = state.active;
   if (!a) return;
   const ex = a.exercises[exIdx];
-  if (!ex || !ex.sets[si]) return;
-  ex.sets.splice(si, 1);
-  if (ex.extraSets > 0) ex.extraSets -= 1;
+  if (!ex) return;
+  const logged = si < ex.sets.length;
+  const slots = exerciseSlots(ex);
+  // Deleting an unlogged slot needs a spare slot, and we always keep >= 1 set.
+  if (!logged && slots <= Math.max(1, ex.sets.length)) return;
+  if (logged) ex.sets.splice(si, 1);
+  setExerciseSlots(ex, slots - 1);
   editingSet = null;
   // If the deletion leaves the exercise unfinished, keep the user focused on it.
   if (!exerciseIsResolved(ex)) {

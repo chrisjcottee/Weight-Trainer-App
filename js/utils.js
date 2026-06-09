@@ -32,8 +32,10 @@ function setCount(exercises) {
   return exercises.reduce((n, e) => n + e.sets.length, 0);
 }
 function exerciseSlots(ex) {
-  // Target sets plus any extra sets the user added mid-workout.
-  return ex.targetSets + (ex.extraSets || 0);
+  // Target sets plus the user's mid-workout adjustment (extraSets, which may be
+  // negative if they deleted planned sets). Never fewer than the logged sets,
+  // and never below one.
+  return Math.max(1, ex.sets.length, ex.targetSets + (ex.extraSets || 0));
 }
 function exerciseIsComplete(ex) {
   return ex.sets.length >= exerciseSlots(ex);

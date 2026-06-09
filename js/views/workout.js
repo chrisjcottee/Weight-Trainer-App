@@ -221,12 +221,19 @@ function completedRowHtml(ex, i) {
   `;
 }
 
+const TRASH_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg>';
+
+function setDeleteBtnHtml(exIdx, si) {
+  return `<button type="button" class="set-delete" data-act="delete-set" data-del-set="${exIdx},${si}" aria-label="Delete set" tabindex="-1">${TRASH_SVG}</button>`;
+}
+
 function setRowHtml(ex, exIdx, si, isCurrentEx) {
   const logged = ex.sets[si];
   const isEditing = !!logged && editingSet && editingSet.exIdx === exIdx && editingSet.setIdx === si;
   const isActive = isCurrentEx && !logged && si === ex.sets.length;
   const isPending = !logged && !isActive;
 
+  // Editing is a transient state and is not swipeable.
   if (isEditing) {
     return `
       <div class="set-row editing" data-set-idx="${si}">
@@ -241,13 +248,13 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
     `;
   }
 
+  // Every other row swipes left to reveal a trash button. Deleting a logged
+  // set removes it; deleting an unlogged (active/upcoming) slot trims the
+  // exercise's set count.
   if (logged) {
-    // Swipe the face left to reveal the trash button; tap the face to edit.
     return `
       <div class="set-row logged swipe-wrap" data-set-idx="${si}">
-        <button type="button" class="set-delete" data-act="delete-set" data-del-set="${exIdx},${si}" aria-label="Delete set" tabindex="-1">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg>
-        </button>
+        ${setDeleteBtnHtml(exIdx, si)}
         <div class="set-row-face" data-edit-set="${exIdx},${si}">
           <span class="lbl">${si + 1}</span>
           <span class="val">${fmtNum(logged.weight)} kg</span>
@@ -260,11 +267,14 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
 
   if (isPending) {
     return `
-      <div class="set-row pending">
-        <span class="lbl">${si + 1}</span>
-        <span class="val">– kg</span>
-        <span class="val">× –</span>
-        <span></span>
+      <div class="set-row pending swipe-wrap" data-set-idx="${si}">
+        ${setDeleteBtnHtml(exIdx, si)}
+        <div class="set-row-face">
+          <span class="lbl">${si + 1}</span>
+          <span class="val">– kg</span>
+          <span class="val">× –</span>
+          <span></span>
+        </div>
       </div>
     `;
   }
@@ -275,12 +285,15 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
   const wHasValue = wPrefill !== '' && !isNaN(parseFloat(wPrefill));
   const last = findLastSet(ex.name, si);
   return `
-    <div class="set-row active" data-set-idx="${si}">
-      <span class="lbl">${si + 1}</span>
-      <input type="tel" inputmode="decimal" class="set-w" value="${wHasValue ? wPrefill : ''}" placeholder="kg" autocomplete="off" maxlength="6">
-      ${repsStepperHtml(rPrefill)}
-      <button class="log-btn"${wHasValue ? '' : ' disabled'}>✓</button>
-      ${last ? `<button type="button" class="last-chip" data-fill-last data-w="${last.weight}" data-r="${last.reps}">Last: ${fmtNum(last.weight)} kg × ${last.reps} · tap to use</button>` : ''}
+    <div class="set-row active swipe-wrap" data-set-idx="${si}">
+      ${setDeleteBtnHtml(exIdx, si)}
+      <div class="set-row-face">
+        <span class="lbl">${si + 1}</span>
+        <input type="tel" inputmode="decimal" class="set-w" value="${wHasValue ? wPrefill : ''}" placeholder="kg" autocomplete="off" maxlength="6">
+        ${repsStepperHtml(rPrefill)}
+        <button class="log-btn"${wHasValue ? '' : ' disabled'}>✓</button>
+        ${last ? `<button type="button" class="last-chip" data-fill-last data-w="${last.weight}" data-r="${last.reps}">Last: ${fmtNum(last.weight)} kg × ${last.reps} · tap to use</button>` : ''}
+      </div>
     </div>
   `;
 }

@@ -342,7 +342,18 @@
     display: flex; flex-direction: column; gap: 6px;
     margin-top: 9px; padding: 0;
   }
+  /* The row is a clipping wrapper; .set-row-face is the visible (sliding) layer.
+     The editing row has no face and lays itself out directly. */
   .set-row {
+    position: relative;
+    overflow: hidden;
+    border-radius: 11px;
+    box-sizing: border-box;
+    border: 0;
+    background: transparent;
+  }
+  .set-row-face,
+  .set-row.editing {
     display: grid;
     grid-template-columns: 26px 1fr 1fr 44px;
     gap: 9px;
@@ -350,7 +361,6 @@
     background: var(--bg);
     border-radius: 11px;
     padding: 8px 11px;
-    border: 0;
     box-sizing: border-box;
   }
   .set-row .lbl {
@@ -360,13 +370,12 @@
     font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
   }
   .set-row .val { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .set-row.logged {
+  .set-row.logged .set-row-face {
     background: var(--success-dim);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: filter 0.12s ease;
   }
-  .set-row.logged:active { filter: brightness(0.96); }
+  .set-row.logged .set-row-face:active { filter: brightness(0.96); }
   .set-row.logged .lbl { background: var(--success); color: white; }
   .set-row.logged .val { color: var(--text); }
   .set-row.pending { opacity: 0.7; }
@@ -383,7 +392,7 @@
     color: var(--text-faint); font-size: 16px;
     pointer-events: none;
   }
-  .set-row.active { background: var(--accent-dim); padding: 7px 8px; }
+  .set-row.active .set-row-face { background: var(--accent-dim); padding: 7px 8px; }
   .set-row.active .lbl { background: var(--accent); color: white; }
   .set-row.editing {
     background: var(--accent-dim); padding: 7px 8px;
@@ -460,29 +469,18 @@
   }
   .add-set-btn:active { background: var(--bg); }
 
-  /* Swipe-to-reveal delete on a logged set row */
-  .set-row.swipe-wrap {
-    display: block; position: relative; overflow: hidden;
-    padding: 0; background: transparent; border-radius: 11px;
-    touch-action: pan-y;
-  }
+  /* Swipe-to-reveal delete — works on logged, active and upcoming set rows */
+  .set-row.swipe-wrap { touch-action: pan-y; }
   .set-row.swipe-wrap .set-row-face {
-    display: grid;
-    grid-template-columns: 26px 1fr 1fr 44px;
-    gap: 9px; align-items: center;
-    background: var(--success-dim);
-    border-radius: 11px; padding: 8px 11px;
-    box-sizing: border-box; position: relative; z-index: 1;
-    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    position: relative; z-index: 1;
     transition: transform 0.22s cubic-bezier(.2,.7,.2,1);
     will-change: transform;
   }
-  .set-row.swipe-wrap .set-row-face:active { filter: brightness(0.96); }
   .set-row.swipe-wrap.revealed .set-row-face { transform: translateX(-72px); }
   .set-delete {
     position: absolute; top: 0; right: 0; bottom: 0; width: 72px;
     display: flex; align-items: center; justify-content: center;
-    border: 0; border-radius: 11px; background: var(--danger, #e5484d);
+    border: 0; border-radius: 11px; background: var(--danger);
     color: white; cursor: pointer; z-index: 0;
   }
 
