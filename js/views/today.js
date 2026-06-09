@@ -56,7 +56,7 @@ function weekStepperHtml(selectedWeek) {
         const status = done ? 'completed' : active ? 'active' : 'planned';
         return `
           <button class="week-step ${classes}" data-select-week="${i}" aria-label="Week ${i + 1}, ${status}">
-            <span class="week-step-circle">${done ? '&#10003;' : i + 1}</span>
+            <span class="week-step-circle">${done ? '&#10003;' : ''}</span>
             <span class="week-step-label">Week ${i + 1}</span>
           </button>
         `;

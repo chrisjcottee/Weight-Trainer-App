@@ -277,7 +277,7 @@
     font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0;
   }
   .ex-rail-step.completed .ex-rail-circle { background: var(--success); border-color: var(--success); color: white; }
-  .ex-rail-step.active .ex-rail-circle { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 0 0 5px var(--accent-dim); animation: wt-pulse-accent 2.6s ease-in-out infinite; }
+  .ex-rail-step.active .ex-rail-circle { background: transparent; border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 5px var(--accent-dim); animation: wt-pulse-accent 2.6s ease-in-out infinite; }
   .ex-rail-step.skipped .ex-rail-circle { background: var(--warn); border-color: var(--warn); color: white; }
   .ex-rail-body { min-width: 0; padding-bottom: 18px; }
   .ex-rail-step:last-child .ex-rail-body { padding-bottom: 0; }
@@ -963,11 +963,15 @@
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
-  .week-step.completed .week-step-circle,
-  .week-step.active .week-step-circle {
+  .week-step.completed .week-step-circle {
     background: var(--success);
     border-color: var(--success);
     color: white;
+  }
+  .week-step.active .week-step-circle {
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
   }
   .week-step.selected .week-step-circle {
     box-shadow: 0 0 0 4px var(--accent-dim);
@@ -1185,11 +1189,15 @@
     cursor: pointer;
     font-variant-numeric: tabular-nums;
   }
-  .day-step.completed .day-step-circle,
-  .day-step.active .day-step-circle {
+  .day-step.completed .day-step-circle {
     background: var(--success);
     border-color: var(--success);
     color: white;
+  }
+  .day-step.active .day-step-circle {
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
   }
   .day-step.expanded .day-step-circle {
     box-shadow: 0 0 0 4px var(--accent-dim);
@@ -1274,8 +1282,9 @@
     border-color: var(--success);
   }
   .exercise-step.active .exercise-step-dot {
-    background: var(--success);
-    border-color: var(--success);
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
   }
   .exercise-step.skipped .exercise-step-dot {
     background: var(--warn);
