@@ -66,6 +66,29 @@ function findLastSet(exerciseName, setIndex) {
   return null;
 }
 
+// The equivalent set (same index) from the most recent past workout in which
+// this exercise was fully completed — the baseline for progression badges.
+function lastCompletedSet(exerciseName, setIndex) {
+  for (let i = state.sessions.length - 1; i >= 0; i--) {
+    const ex = state.sessions[i].exercises.find(e => e.name === exerciseName);
+    if (!ex || ex.skipped) continue;
+    const target = ex.targetSets || 0;
+    if (ex.sets.length > 0 && ex.sets.length >= target && ex.sets[setIndex]) {
+      return ex.sets[setIndex];
+    }
+  }
+  return null;
+}
+
+// Weight/reps gained on a logged set versus the equivalent set last time this
+// exercise was completed. Returns null when there's no completed baseline.
+function setProgress(ex, setIndex, logged) {
+  if (!logged) return null;
+  const ref = lastCompletedSet(ex.name, setIndex);
+  if (!ref) return null;
+  return { weight: logged.weight - ref.weight, reps: logged.reps - ref.reps };
+}
+
 function weightPrefillFor(ex, si) {
   // Set 2+: take the weight from the previous set in this workout
   if (si > 0 && ex.sets[si - 1]) return ex.sets[si - 1].weight;
