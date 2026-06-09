@@ -31,8 +31,12 @@ function totalVolume(exercises) {
 function setCount(exercises) {
   return exercises.reduce((n, e) => n + e.sets.length, 0);
 }
+function exerciseSlots(ex) {
+  // Target sets plus any extra sets the user added mid-workout.
+  return ex.targetSets + (ex.extraSets || 0);
+}
 function exerciseIsComplete(ex) {
-  return ex.sets.length >= ex.targetSets;
+  return ex.sets.length >= exerciseSlots(ex);
 }
 function exerciseIsResolved(ex) {
   return exerciseIsComplete(ex) || !!ex.skipped;

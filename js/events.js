@@ -1,9 +1,76 @@
 /* ---------- Event handling ---------- */
+const SWIPE_REVEAL = 72; // px the set face slides to expose the trash button
+let swipe = null;
+let suppressNextClick = false;
+
 function bindGlobalEvents() {
   document.addEventListener('click', onClick);
   document.addEventListener('input', onInput);
   document.addEventListener('keydown', onKeydown);
   document.addEventListener('focusin', onFocusIn);
+  document.addEventListener('touchstart', onTouchStart, { passive: true });
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
+  document.addEventListener('touchend', onTouchEnd);
+  document.addEventListener('touchcancel', onTouchEnd);
+}
+
+/* ---------- Swipe-to-reveal delete on logged set rows ---------- */
+function closeAllReveals(except) {
+  document.querySelectorAll('.set-row.revealed').forEach(el => {
+    if (el !== except) el.classList.remove('revealed');
+  });
+}
+
+function onTouchStart(e) {
+  // A fresh touch is deliberate intent — never suppress its click.
+  suppressNextClick = false;
+  if (e.touches.length !== 1) { swipe = null; return; }
+  const wrap = e.target.closest && e.target.closest('.set-row.swipe-wrap');
+  // Don't begin a swipe from the trash button itself.
+  if (!wrap || (e.target.closest && e.target.closest('.set-delete'))) { swipe = null; return; }
+  const face = wrap.querySelector('.set-row-face');
+  if (!face) { swipe = null; return; }
+  const t = e.touches[0];
+  swipe = {
+    wrap, face,
+    startX: t.clientX, startY: t.clientY,
+    base: wrap.classList.contains('revealed') ? -SWIPE_REVEAL : 0,
+    horizontal: false, vertical: false, curr: null
+  };
+}
+
+function onTouchMove(e) {
+  if (!swipe) return;
+  const t = e.touches[0];
+  const dx = t.clientX - swipe.startX;
+  const dy = t.clientY - swipe.startY;
+  if (!swipe.horizontal && !swipe.vertical) {
+    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) swipe.horizontal = true;
+    else if (Math.abs(dy) > 8) swipe.vertical = true;
+  }
+  if (swipe.vertical) { swipe = null; return; } // it's a scroll — let it through
+  if (!swipe.horizontal) return;
+  e.preventDefault(); // claim the gesture so the page doesn't scroll
+  let tx = Math.max(-SWIPE_REVEAL, Math.min(0, swipe.base + dx));
+  swipe.curr = tx;
+  swipe.face.style.transition = 'none';
+  swipe.face.style.transform = `translateX(${tx}px)`;
+}
+
+function onTouchEnd() {
+  if (!swipe) return;
+  const s = swipe;
+  swipe = null;
+  if (!s.horizontal) return;
+  // Hand the snap back to the CSS class transition.
+  s.face.style.transition = '';
+  s.face.style.transform = '';
+  const shouldReveal = (s.curr != null ? s.curr : s.base) <= -SWIPE_REVEAL / 2;
+  closeAllReveals(s.wrap);
+  s.wrap.classList.toggle('revealed', shouldReveal);
+  // A horizontal swipe must not also fire the tap-to-edit click.
+  suppressNextClick = true;
+  setTimeout(() => { suppressNextClick = false; }, 400);
 }
 
 function onFocusIn(e) {
@@ -14,6 +81,22 @@ function onFocusIn(e) {
 }
 
 function onClick(e) {
+  // A just-finished swipe shouldn't trigger a tap action.
+  if (suppressNextClick) { suppressNextClick = false; return; }
+
+  // Tap the revealed trash button to delete that set.
+  const delBtn = e.target.closest && e.target.closest('[data-act="delete-set"]');
+  if (delBtn) {
+    const [exIdx, si] = delBtn.dataset.delSet.split(',').map(Number);
+    removeSet(exIdx, si);
+    return;
+  }
+  // With a set swiped open, the next tap anywhere just closes it.
+  if (document.querySelector('.set-row.revealed')) {
+    closeAllReveals(null);
+    return;
+  }
+
   const t = e.target.closest('[data-tab]');
   if (t) {
     setState({ tab: t.dataset.tab });
@@ -260,6 +343,12 @@ function onClick(e) {
     const exIdx = parseInt(e.target.dataset.exIdx, 10);
     if (withUnloggedSetGuard(() => skipExercise(exIdx), 'Skip without set')) return;
     skipExercise(exIdx);
+    return;
+  }
+  // "+ Add set" — append an extra loggable set to an exercise
+  const addSetBtn = e.target.closest && e.target.closest('[data-act="add-set"]');
+  if (addSetBtn) {
+    addSet(+addSetBtn.dataset.exIdx);
     return;
   }
   // Tap an outstanding exercise to make it the active one

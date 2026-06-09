@@ -80,17 +80,23 @@ function activeStepHtml(ex, i) {
             <div class="ex-rail-name" style="font-size:17px;">${name}</div>
           </div>
           <div class="row" style="gap:6px;">
-            <span class="badge">${ex.sets.length}/${ex.targetSets}</span>
+            <span class="badge">${ex.sets.length}/${exerciseSlots(ex)}</span>
             <button class="btn ghost small skip-ex-btn" data-act="skip-ex" data-ex-idx="${i}">${skipLabel}</button>
           </div>
         </div>
         <div class="ex-rail-meta" style="margin:2px 0 0;">Target ${ex.targetSets} × ${ex.targetReps}</div>
         <div class="sets-modern">
-          ${Array.from({length: ex.targetSets}, (_, si) => setRowHtml(ex, i, si, true)).join('')}
+          ${Array.from({length: exerciseSlots(ex)}, (_, si) => setRowHtml(ex, i, si, true)).join('')}
         </div>
+        ${addSetBtnHtml(i)}
       </div>
     </div>
   `;
+}
+
+// "+ Add set" — appends one more loggable set beyond the allocated target.
+function addSetBtnHtml(exIdx) {
+  return `<button type="button" class="add-set-btn" data-act="add-set" data-ex-idx="${exIdx}">+ Add set</button>`;
 }
 
 // An outstanding exercise that isn't active yet — tap to make it active. Blank circle.
@@ -98,7 +104,7 @@ function upNextStepHtml(ex, i) {
   const name = esc(ex.name);
   const started = ex.sets.length > 0;
   const badge = started
-    ? `<span class="badge">${ex.sets.length}/${ex.targetSets}</span>`
+    ? `<span class="badge">${ex.sets.length}/${exerciseSlots(ex)}</span>`
     : `<span class="badge muted">${ex.targetSets} × ${ex.targetReps}</span>`;
   const summary = started
     ? `${ex.sets.map(s => `${fmtNum(s.weight)}×${s.reps}`).join(' · ')} · tap to resume`
@@ -130,12 +136,13 @@ function lingerStepHtml(ex, i) {
             <div class="rail-eyebrow done">Completed</div>
             <div class="ex-rail-name">${name}</div>
           </div>
-          <span class="badge success">${ex.sets.length}/${ex.targetSets} ✓</span>
+          <span class="badge success">${ex.sets.length}/${exerciseSlots(ex)} ✓</span>
         </div>
-        <div class="ex-rail-meta" style="margin:2px 0 0;">Nice work — tap a set to fix it before it files away</div>
+        <div class="ex-rail-meta" style="margin:2px 0 0;">Nice work — edit, add a set, or pick the next exercise</div>
         <div class="sets-modern">
           ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
         </div>
+        ${addSetBtnHtml(i)}
       </div>
     </div>
   `;
@@ -173,7 +180,7 @@ function completedRowHtml(ex, i) {
   const circle = skipped ? '–' : '✓';
   const badge = skipped
     ? `<span class="badge warn">${ex.sets.length ? 'Skipped rest' : 'Skipped'}</span>`
-    : `<span class="badge success">${ex.sets.length}/${ex.targetSets} ✓</span>`;
+    : `<span class="badge success">${ex.sets.length}/${exerciseSlots(ex)} ✓</span>`;
   const editable = ex.sets.length > 0;
   const expanded = editable && i === expandedExIdx;
 
@@ -186,10 +193,11 @@ function completedRowHtml(ex, i) {
             <div class="ex-rail-name">${name}</div>
             ${badge}
           </div>
-          <div class="ex-rail-meta" style="margin:2px 0 0;">Tap a set to edit · tap the title to close</div>
+          <div class="ex-rail-meta" style="margin:2px 0 0;">Tap a set to edit · swipe a set to delete · tap the title to close</div>
           <div class="sets-modern">
             ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
           </div>
+          ${addSetBtnHtml(i)}
         </div>
       </div>
     `;
@@ -234,12 +242,18 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
   }
 
   if (logged) {
+    // Swipe the face left to reveal the trash button; tap the face to edit.
     return `
-      <div class="set-row logged" data-edit-set="${exIdx},${si}">
-        <span class="lbl">${si + 1}</span>
-        <span class="val">${fmtNum(logged.weight)} kg</span>
-        <span class="val">× ${logged.reps}</span>
-        <span class="set-check" aria-hidden="true">✓</span>
+      <div class="set-row logged swipe-wrap" data-set-idx="${si}">
+        <button type="button" class="set-delete" data-act="delete-set" data-del-set="${exIdx},${si}" aria-label="Delete set" tabindex="-1">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg>
+        </button>
+        <div class="set-row-face" data-edit-set="${exIdx},${si}">
+          <span class="lbl">${si + 1}</span>
+          <span class="val">${fmtNum(logged.weight)} kg</span>
+          <span class="val">× ${logged.reps}</span>
+          <span class="set-check" aria-hidden="true">✓</span>
+        </div>
       </div>
     `;
   }

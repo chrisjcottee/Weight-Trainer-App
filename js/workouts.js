@@ -33,15 +33,17 @@ function startWorkout(dayIndex) {
 }
 
 /* ---------- Active-exercise selection (any-order) ---------- */
-// The active (blue) exercise. Stored on state.active for reload-resilience;
-// recomputed to the first unresolved exercise if missing or stale.
+// The active (blue) exercise, stored on state.active for reload-resilience.
+// -1 means nothing is selected — after completing an exercise we deliberately
+// leave the selection empty so the user picks the next one themselves.
 function currentActiveIdx() {
   const a = state.active;
   if (!a) return -1;
-  let idx = a.activeExIdx;
-  if (idx == null || idx < 0 || idx >= a.exercises.length || exerciseIsResolved(a.exercises[idx])) {
-    idx = a.exercises.findIndex(e => !exerciseIsResolved(e));
-    a.activeExIdx = idx;
+  const idx = a.activeExIdx;
+  if (idx == null) return -1;
+  if (idx < 0 || idx >= a.exercises.length || exerciseIsResolved(a.exercises[idx])) {
+    a.activeExIdx = -1;
+    return -1;
   }
   return idx;
 }
@@ -55,22 +57,22 @@ function validLingerIdx() {
   return lingeringExIdx;
 }
 
-// First unresolved exercise after `idx`, wrapping around. -1 if all resolved.
-function nextUnresolvedAfter(idx) {
-  const a = state.active;
-  if (!a) return -1;
-  const n = a.exercises.length;
-  for (let k = 1; k <= n; k++) {
-    const j = (idx + k) % n;
-    if (!exerciseIsResolved(a.exercises[j])) return j;
-  }
-  return -1;
-}
-
 // Engaging any exercise other than the lingering one files the lingering one
 // down into the Completed section.
 function maybeFlushLinger(exIdx) {
   if (lingeringExIdx != null && lingeringExIdx !== exIdx) lingeringExIdx = null;
+}
+
+// Drop any "Add set" slots that were never filled on exercises the user has
+// moved on from, so an abandoned extra slot doesn't leave them stuck incomplete.
+function reclaimExtraSlots(exceptIdx) {
+  const a = state.active;
+  if (!a) return;
+  a.exercises.forEach((ex, i) => {
+    if (i === exceptIdx) return;
+    const min = Math.max(0, ex.sets.length - ex.targetSets);
+    if ((ex.extraSets || 0) > min) ex.extraSets = min;
+  });
 }
 
 // User taps an outstanding exercise to make it active.
@@ -79,9 +81,72 @@ function setActiveExercise(idx) {
   if (!a || idx < 0 || idx >= a.exercises.length) return;
   if (exerciseIsResolved(a.exercises[idx])) return;
   if (idx === a.activeExIdx && lingeringExIdx == null) return;
+  reclaimExtraSlots(idx);
   maybeFlushLinger(idx);
   a.activeExIdx = idx;
   editingSet = null;
+  renderRailReorder();
+}
+
+// "+ Add set" — give an exercise one more loggable set and focus it.
+function addSet(exIdx) {
+  const a = state.active;
+  if (!a) return;
+  const ex = a.exercises[exIdx];
+  if (!ex) return;
+
+  // Preserve any half-typed value in the on-screen active row before re-render.
+  let typed = null;
+  const liveRow = document.querySelector(`[data-ex-idx="${exIdx}"] .set-row.active`);
+  if (liveRow && liveRow.dataset.dirty === '1') {
+    typed = {
+      w: (liveRow.querySelector('.set-w') || {}).value || '',
+      r: (liveRow.querySelector('.set-r') || {}).value || ''
+    };
+  }
+
+  ex.extraSets = (ex.extraSets || 0) + 1;
+  ex.skipped = false;
+  if (lingeringExIdx === exIdx) lingeringExIdx = null;
+  else maybeFlushLinger(exIdx);
+  a.activeExIdx = exIdx;
+  expandedExIdx = null;
+  editingSet = null;
+  renderRailReorder();
+
+  requestAnimationFrame(() => {
+    const card = document.querySelector(`.ex-rail-step.active[data-ex-idx="${exIdx}"]`);
+    const row = card && card.querySelector('.set-row.active');
+    if (!row) return;
+    if (typed) {
+      const w = row.querySelector('.set-w');
+      const rH = row.querySelector('.set-r');
+      const rD = row.querySelector('.reps-stepper .step-val');
+      if (w) w.value = typed.w;
+      if (rH) rH.value = typed.r;
+      if (rD && typed.r) rD.textContent = typed.r;
+      row.dataset.dirty = '1';
+      updateLogBtn(row);
+    }
+    const w = row.querySelector('.set-w');
+    if (w) w.focus();
+  });
+}
+
+// Swipe-to-delete a logged set.
+function removeSet(exIdx, si) {
+  const a = state.active;
+  if (!a) return;
+  const ex = a.exercises[exIdx];
+  if (!ex || !ex.sets[si]) return;
+  ex.sets.splice(si, 1);
+  if (ex.extraSets > 0) ex.extraSets -= 1;
+  editingSet = null;
+  // If the deletion leaves the exercise unfinished, keep the user focused on it.
+  if (!exerciseIsResolved(ex)) {
+    if (lingeringExIdx === exIdx) lingeringExIdx = null;
+    a.activeExIdx = exIdx;
+  }
   renderRailReorder();
 }
 
@@ -199,7 +264,7 @@ function skipExercise(exIdx) {
     ex.skipped = true;
     ex.skippedAt = Date.now();
     editingSet = null;
-    a.activeExIdx = nextUnresolvedAfter(exIdx);
+    a.activeExIdx = -1; // user selects the next exercise themselves
     closeModal();
     renderRailReorder();
   };
@@ -217,6 +282,7 @@ function skipExercise(exIdx) {
 function endWorkoutFlow() {
   const a = state.active;
   if (!a) return;
+  reclaimExtraSlots(-1); // drop any unfilled added slots before resolving status
   const fullyComplete = a.exercises.every(exerciseIsResolved);
   const anyLogged = a.exercises.some(e => e.sets.length > 0);
   const anySkipped = a.exercises.some(e => e.skipped);
@@ -293,7 +359,7 @@ function logCurrentSet(row) {
   maybeFlushLinger(exIdx);
 
   ex.sets.push({ weight: w, reps: r, ts: Date.now() });
-  const stillSameEx = ex.sets.length < ex.targetSets;
+  const stillSameEx = ex.sets.length < exerciseSlots(ex);
   buzz(stillSameEx ? 12 : [20, 40, 20]);
   startRest();
 
@@ -303,11 +369,11 @@ function logCurrentSet(row) {
     // input stays responsive and we avoid re-rendering the whole rail.
     const setsWrap = card.querySelector('.sets-modern');
     if (setsWrap) {
-      setsWrap.innerHTML = Array.from({ length: ex.targetSets },
+      setsWrap.innerHTML = Array.from({ length: exerciseSlots(ex) },
         (_, si) => setRowHtml(ex, exIdx, si, true)).join('');
     }
     const badge = card.querySelector('.dense-line .badge');
-    if (badge) badge.textContent = `${ex.sets.length}/${ex.targetSets}`;
+    if (badge) badge.textContent = `${ex.sets.length}/${exerciseSlots(ex)}`;
     requestAnimationFrame(() => {
       const next = card.querySelector('.set-row.active .set-w');
       if (next && document.activeElement !== next) next.focus();
@@ -315,10 +381,10 @@ function logCurrentSet(row) {
     return;
   }
 
-  // Exercise complete — it lingers in place (editable) while the next
-  // unresolved exercise auto-becomes active. Animate the reorder.
+  // Exercise complete — it lingers in place (editable). We do NOT auto-advance:
+  // the user selects the next exercise so they can tweak this one first.
   lingeringExIdx = exIdx;
-  state.active.activeExIdx = nextUnresolvedAfter(exIdx);
+  state.active.activeExIdx = -1;
   renderRailReorder();
 }
 
