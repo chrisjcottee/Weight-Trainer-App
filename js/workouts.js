@@ -7,6 +7,8 @@ function startWorkout(dayIndex) {
   if (!day) return;
   editingSet = null;
   expandedExIdx = null;
+  lingeringExIdx = null;
+  completedCollapsed = true;
   selectedWeekIndex = state.currentRun.weekIndex || 0;
   expandedDayKey = dayKey(selectedWeekIndex, dayIndex);
   state.active = {
@@ -16,6 +18,7 @@ function startWorkout(dayIndex) {
     dayIndex,
     dayName: day.name || ('Workout ' + (dayIndex + 1)),
     startedAt: Date.now(),
+    activeExIdx: 0,
     exercises: day.exercises.map(e => ({
       name: e.name,
       targetSets: e.sets,
@@ -27,6 +30,120 @@ function startWorkout(dayIndex) {
   state.tab = 'workout';
   save();
   render();
+}
+
+/* ---------- Active-exercise selection (any-order) ---------- */
+// The active (blue) exercise. Stored on state.active for reload-resilience;
+// recomputed to the first unresolved exercise if missing or stale.
+function currentActiveIdx() {
+  const a = state.active;
+  if (!a) return -1;
+  let idx = a.activeExIdx;
+  if (idx == null || idx < 0 || idx >= a.exercises.length || exerciseIsResolved(a.exercises[idx])) {
+    idx = a.exercises.findIndex(e => !exerciseIsResolved(e));
+    a.activeExIdx = idx;
+  }
+  return idx;
+}
+
+// The just-completed exercise still shown in place, or null if none/invalid.
+function validLingerIdx() {
+  const a = state.active;
+  if (!a || lingeringExIdx == null) return null;
+  const ex = a.exercises[lingeringExIdx];
+  if (!ex || !exerciseIsResolved(ex)) { lingeringExIdx = null; return null; }
+  return lingeringExIdx;
+}
+
+// First unresolved exercise after `idx`, wrapping around. -1 if all resolved.
+function nextUnresolvedAfter(idx) {
+  const a = state.active;
+  if (!a) return -1;
+  const n = a.exercises.length;
+  for (let k = 1; k <= n; k++) {
+    const j = (idx + k) % n;
+    if (!exerciseIsResolved(a.exercises[j])) return j;
+  }
+  return -1;
+}
+
+// Engaging any exercise other than the lingering one files the lingering one
+// down into the Completed section.
+function maybeFlushLinger(exIdx) {
+  if (lingeringExIdx != null && lingeringExIdx !== exIdx) lingeringExIdx = null;
+}
+
+// User taps an outstanding exercise to make it active.
+function setActiveExercise(idx) {
+  const a = state.active;
+  if (!a || idx < 0 || idx >= a.exercises.length) return;
+  if (exerciseIsResolved(a.exercises[idx])) return;
+  if (idx === a.activeExIdx && lingeringExIdx == null) return;
+  maybeFlushLinger(idx);
+  a.activeExIdx = idx;
+  editingSet = null;
+  renderRailReorder();
+}
+
+/* ---------- Rail reorder animation (FLIP) ---------- */
+function captureRailState() {
+  const map = new Map();
+  document.querySelectorAll('.ex-rail [data-ex-idx]').forEach(el => {
+    map.set(el.getAttribute('data-ex-idx'), { rect: el.getBoundingClientRect(), clone: el.cloneNode(true) });
+  });
+  return map;
+}
+
+function playRailReorder(prev) {
+  if (!prev || !prev.size) return;
+  if (!Element.prototype.animate) return; // no Web Animations API — skip gracefully
+  const seen = new Set();
+  document.querySelectorAll('.ex-rail [data-ex-idx]').forEach(el => {
+    const id = el.getAttribute('data-ex-idx');
+    seen.add(id);
+    const before = prev.get(id);
+    if (!before) {
+      el.animate(
+        [{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 220, easing: 'ease-out' }
+      );
+      return;
+    }
+    const after = el.getBoundingClientRect();
+    const dy = before.rect.top - after.top;
+    if (Math.abs(dy) < 2) return;
+    el.animate(
+      [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
+      { duration: 340, easing: 'cubic-bezier(.2,.7,.2,1)' }
+    );
+  });
+
+  // Anything that disappeared (e.g. filed into a collapsed Completed section)
+  // fades out from where it was via a floating ghost.
+  prev.forEach((info, id) => {
+    if (seen.has(id)) return;
+    const r = info.rect;
+    if (r.width === 0 && r.height === 0) return;
+    const ghost = info.clone;
+    Object.assign(ghost.style, {
+      position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px',
+      margin: '0', zIndex: '5', pointerEvents: 'none'
+    });
+    document.body.appendChild(ghost);
+    const anim = ghost.animate(
+      [{ opacity: 1, transform: 'translateY(0) scale(1)' }, { opacity: 0, transform: 'translateY(10px) scale(0.97)' }],
+      { duration: 240, easing: 'ease-in' }
+    );
+    anim.onfinish = anim.oncancel = () => ghost.remove();
+  });
+}
+
+// Save + render, animating any rail steps that changed position or filed away.
+function renderRailReorder() {
+  const prev = captureRailState();
+  save();
+  render();
+  requestAnimationFrame(() => playRailReorder(prev));
 }
 
 function withUnloggedSetGuard(next, continueText) {
@@ -78,16 +195,13 @@ function skipExercise(exIdx) {
   if (!ex || exerciseIsResolved(ex)) return;
 
   const applySkip = () => {
+    maybeFlushLinger(exIdx);
     ex.skipped = true;
     ex.skippedAt = Date.now();
     editingSet = null;
+    a.activeExIdx = nextUnresolvedAfter(exIdx);
     closeModal();
-    save();
-    render();
-    requestAnimationFrame(() => {
-      const nextStep = document.querySelector('.ex-rail-step.active');
-      if (nextStep) nextStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    renderRailReorder();
   };
 
   showModal({
@@ -173,13 +287,18 @@ function logCurrentSet(row) {
   if (!card) return;
   const exIdx = +card.dataset.exIdx;
   const ex = state.active.exercises[exIdx];
+
+  // Logging on the active exercise is the "next action" that files away any
+  // previously lingering completed exercise.
+  maybeFlushLinger(exIdx);
+
   ex.sets.push({ weight: w, reps: r, ts: Date.now() });
   const stillSameEx = ex.sets.length < ex.targetSets;
   buzz(stillSameEx ? 12 : [20, 40, 20]);
-  save();
   startRest();
 
   if (stillSameEx) {
+    save();
     // In-place advance: patch only this exercise's set rows + counter so the
     // input stays responsive and we avoid re-rendering the whole rail.
     const setsWrap = card.querySelector('.sets-modern');
@@ -196,12 +315,11 @@ function logCurrentSet(row) {
     return;
   }
 
-  // Exercise finished — full render to collapse it and advance the rail.
-  render();
-  requestAnimationFrame(() => {
-    const nextStep = document.querySelector('.ex-rail-step.active');
-    if (nextStep) nextStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  // Exercise complete — it lingers in place (editable) while the next
+  // unresolved exercise auto-becomes active. Animate the reorder.
+  lingeringExIdx = exIdx;
+  state.active.activeExIdx = nextUnresolvedAfter(exIdx);
+  renderRailReorder();
 }
 
 function finishWorkout(opts = {}) {
@@ -212,6 +330,8 @@ function finishWorkout(opts = {}) {
   if (!sessionExercises.length) {
     state.active = null;
     editingSet = null;
+    lingeringExIdx = null;
+    completedCollapsed = true;
     save();
     render();
     return;
@@ -328,6 +448,8 @@ function finishWorkout(opts = {}) {
   state.active = null;
   editingSet = null;
   expandedExIdx = null;
+  lingeringExIdx = null;
+  completedCollapsed = true;
   save();
   render();
 }

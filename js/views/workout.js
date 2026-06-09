@@ -1,17 +1,34 @@
 Views.workout = function() {
   const a = state.active;
   if (!a) return workoutEmptyHtml();
-  const currentExIdx = a.exercises.findIndex(e => !exerciseIsResolved(e));
-  const allDone = currentExIdx === -1;
+  const activeIdx = currentActiveIdx();
+  const linger = validLingerIdx();
+  const allResolved = a.exercises.every(exerciseIsResolved);
 
   const dots = a.exercises.map((e, i) => {
     const done = exerciseIsComplete(e);
     const skipped = !!e.skipped;
-    const cur = i === currentExIdx;
+    const cur = i === activeIdx;
     return `<div class="dot ${done ? 'done' : ''} ${skipped ? 'skipped' : ''} ${cur ? 'current' : ''}" data-jump="${i}"></div>`;
   }).join('');
 
-  const steps = a.exercises.map((e, i) => exerciseRailStepHtml(e, i, currentExIdx)).join('');
+  // Outstanding (top) list — no heading. Order: lingering just-completed,
+  // then the active exercise, then the remaining unresolved exercises.
+  const order = [];
+  if (linger != null) order.push(linger);
+  if (activeIdx >= 0 && activeIdx !== linger) order.push(activeIdx);
+  a.exercises.forEach((e, i) => {
+    if (i === activeIdx || i === linger) return;
+    if (!exerciseIsResolved(e)) order.push(i);
+  });
+  const topHtml = order.map(i => {
+    if (i === linger) return lingerStepHtml(a.exercises[i], i);
+    if (i === activeIdx) return activeStepHtml(a.exercises[i], i);
+    return upNextStepHtml(a.exercises[i], i);
+  }).join('');
+
+  const topCard = topHtml ? `<div class="card"><div class="ex-rail">${topHtml}</div></div>` : '';
+  const completedCard = completedSectionHtml(a, linger);
 
   return `
     <div class="workout-top">
@@ -21,12 +38,11 @@ Views.workout = function() {
       </div>
       <div class="dots">${dots}</div>
     </div>
-    <div class="card">
-      <div class="ex-rail">${steps}</div>
-    </div>
+    ${topCard}
+    ${completedCard}
     <div class="workout-bottom">
       <div class="workout-bottom-inner">
-        <button class="btn ${allDone ? 'success' : ''}" id="finish-workout">${allDone ? 'Finish Workout ✓' : 'Finish Workout'}</button>
+        <button class="btn ${allResolved ? 'success' : ''}" id="finish-workout">${allResolved ? 'Finish Workout ✓' : 'Finish Workout'}</button>
       </div>
     </div>
   `;
@@ -50,93 +66,148 @@ function workoutEmptyHtml() {
   `;
 }
 
-function exerciseRailStepHtml(ex, i, currentExIdx) {
-  const complete = exerciseIsComplete(ex);
-  const skipped = !!ex.skipped;
-  const done = complete || skipped;
-  const isCurrent = !done && i === currentExIdx;
+// The active (blue) exercise — expanded with the set logger. Blank rail circle.
+function activeStepHtml(ex, i) {
   const name = esc(ex.name);
-
-  if (done) {
-    const circle = skipped ? '–' : '✓';
-    const badge = skipped
-      ? `<span class="badge warn">${ex.sets.length ? 'Skipped rest' : 'Skipped'}</span>`
-      : `<span class="badge success">${ex.sets.length}/${ex.targetSets} ✓</span>`;
-    // Only exercises with logged sets can be reopened to fix a typed value.
-    const editable = ex.sets.length > 0;
-    const expanded = editable && i === expandedExIdx;
-
-    if (expanded) {
-      return `
-        <div class="ex-rail-step ${skipped ? 'skipped' : 'completed'} expanded" data-ex-idx="${i}">
-          <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
-          <div class="ex-rail-body">
-            <div class="dense-line edit-toggle" data-toggle-done="${i}">
-              <div class="ex-rail-name">${name}</div>
-              ${badge}
-            </div>
-            <div class="ex-rail-meta" style="margin:2px 0 0;">Tap a set to edit · tap the title to close</div>
-            <div class="sets-modern">
-              ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
-            </div>
+  const skipLabel = ex.sets.length ? 'Skip Rest' : 'Skip';
+  return `
+    <div class="ex-rail-step active" data-ex-idx="${i}">
+      <div class="ex-rail-node"><span class="ex-rail-circle"></span></div>
+      <div class="ex-rail-body">
+        <div class="dense-line">
+          <div style="min-width:0;">
+            <div class="rail-eyebrow active">Active</div>
+            <div class="ex-rail-name" style="font-size:17px;">${name}</div>
+          </div>
+          <div class="row" style="gap:6px;">
+            <span class="badge">${ex.sets.length}/${ex.targetSets}</span>
+            <button class="btn ghost small skip-ex-btn" data-act="skip-ex" data-ex-idx="${i}">${skipLabel}</button>
           </div>
         </div>
-      `;
-    }
+        <div class="ex-rail-meta" style="margin:2px 0 0;">Target ${ex.targetSets} × ${ex.targetReps}</div>
+        <div class="sets-modern">
+          ${Array.from({length: ex.targetSets}, (_, si) => setRowHtml(ex, i, si, true)).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
 
-    const cls = ['ex-rail-step', skipped ? 'skipped' : 'completed', 'dense-collapsed'].join(' ');
-    const summary = skipped
-      ? (ex.sets.length ? `${esc(sessionExerciseSetSummary(ex))} · skipped rest` : 'Skipped this session')
-      : ex.sets.map(s => `${fmtNum(s.weight)}×${s.reps}`).join(' · ');
-    const editAttr = editable ? ` data-toggle-done="${i}"` : '';
+// An outstanding exercise that isn't active yet — tap to make it active. Blank circle.
+function upNextStepHtml(ex, i) {
+  const name = esc(ex.name);
+  const started = ex.sets.length > 0;
+  const badge = started
+    ? `<span class="badge">${ex.sets.length}/${ex.targetSets}</span>`
+    : `<span class="badge muted">${ex.targetSets} × ${ex.targetReps}</span>`;
+  const summary = started
+    ? `${ex.sets.map(s => `${fmtNum(s.weight)}×${s.reps}`).join(' · ')} · tap to resume`
+    : 'Tap to start';
+  return `
+    <div class="ex-rail-step upcoming dense-collapsed" data-ex-idx="${i}">
+      <div class="ex-rail-node"><span class="ex-rail-circle"></span></div>
+      <div class="ex-rail-body selectable" data-select-active="${i}">
+        <div class="dense-line">
+          <div class="ex-rail-name">${name}</div>
+          ${badge}
+        </div>
+        <div class="dense-summary">${summary}</div>
+      </div>
+    </div>
+  `;
+}
+
+// A just-completed exercise lingering in place — stays editable until the next
+// action files it into the Completed section.
+function lingerStepHtml(ex, i) {
+  const name = esc(ex.name);
+  return `
+    <div class="ex-rail-step completed expanded linger" data-ex-idx="${i}">
+      <div class="ex-rail-node"><span class="ex-rail-circle">✓</span></div>
+      <div class="ex-rail-body">
+        <div class="dense-line">
+          <div style="min-width:0;">
+            <div class="rail-eyebrow done">Completed</div>
+            <div class="ex-rail-name">${name}</div>
+          </div>
+          <span class="badge success">${ex.sets.length}/${ex.targetSets} ✓</span>
+        </div>
+        <div class="ex-rail-meta" style="margin:2px 0 0;">Nice work — tap a set to fix it before it files away</div>
+        <div class="sets-modern">
+          ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Collapsed "Completed (N)" section. N counts truly-completed exercises;
+// skipped exercises live here too but are noted separately, not counted.
+function completedSectionHtml(a, linger) {
+  const idxs = a.exercises
+    .map((e, i) => i)
+    .filter(i => i !== linger && exerciseIsResolved(a.exercises[i]));
+  if (!idxs.length) return '';
+  const completedCount = idxs.filter(i => exerciseIsComplete(a.exercises[i]) && !a.exercises[i].skipped).length;
+  const skippedN = idxs.filter(i => a.exercises[i].skipped).length;
+  const note = skippedN ? `<span class="completed-skip-note">${skippedN} skipped</span>` : '';
+  const body = completedCollapsed ? '' : `
+    <div class="ex-rail completed-list">
+      ${idxs.map(i => completedRowHtml(a.exercises[i], i)).join('')}
+    </div>`;
+  return `
+    <div class="card completed-card">
+      <button class="completed-header" data-toggle-completed type="button" aria-expanded="${!completedCollapsed}">
+        <span class="completed-title">Completed <span class="completed-count">${completedCount}</span></span>
+        <span class="row" style="gap:10px;">${note}<span class="completed-chevron ${completedCollapsed ? '' : 'open'}" aria-hidden="true">⌄</span></span>
+      </button>
+      ${body}
+    </div>
+  `;
+}
+
+// A row inside the Completed section — tap to expand and edit its logged sets.
+function completedRowHtml(ex, i) {
+  const skipped = !!ex.skipped;
+  const name = esc(ex.name);
+  const circle = skipped ? '–' : '✓';
+  const badge = skipped
+    ? `<span class="badge warn">${ex.sets.length ? 'Skipped rest' : 'Skipped'}</span>`
+    : `<span class="badge success">${ex.sets.length}/${ex.targetSets} ✓</span>`;
+  const editable = ex.sets.length > 0;
+  const expanded = editable && i === expandedExIdx;
+
+  if (expanded) {
     return `
-      <div class="${cls}" data-ex-idx="${i}">
+      <div class="ex-rail-step ${skipped ? 'skipped' : 'completed'} expanded" data-ex-idx="${i}">
         <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
-        <div class="ex-rail-body${editable ? ' editable' : ''}"${editAttr}>
-          <div class="dense-line">
+        <div class="ex-rail-body">
+          <div class="dense-line edit-toggle" data-toggle-done="${i}">
             <div class="ex-rail-name">${name}</div>
             ${badge}
           </div>
-          <div class="dense-summary">${summary}${editable ? ' · tap to edit' : ''}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  if (isCurrent) {
-    const skipLabel = ex.sets.length ? 'Skip Rest' : 'Skip';
-    return `
-      <div class="ex-rail-step active" data-ex-idx="${i}">
-        <div class="ex-rail-node"><span class="ex-rail-circle">${i + 1}</span></div>
-        <div class="ex-rail-body">
-          <div class="dense-line">
-            <div style="min-width:0;">
-              <div class="rail-eyebrow active">In progress</div>
-              <div class="ex-rail-name" style="font-size:17px;">${name}</div>
-            </div>
-            <div class="row" style="gap:6px;">
-              <span class="badge">${ex.sets.length}/${ex.targetSets}</span>
-              <button class="btn ghost small skip-ex-btn" data-act="skip-ex" data-ex-idx="${i}">${skipLabel}</button>
-            </div>
-          </div>
-          <div class="ex-rail-meta" style="margin:2px 0 0;">Target ${ex.targetSets} × ${ex.targetReps}</div>
+          <div class="ex-rail-meta" style="margin:2px 0 0;">Tap a set to edit · tap the title to close</div>
           <div class="sets-modern">
-            ${Array.from({length: ex.targetSets}, (_, si) => setRowHtml(ex, i, si, true)).join('')}
+            ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
           </div>
         </div>
       </div>
     `;
   }
 
-  // Pending — collapsed
+  const summary = skipped
+    ? (ex.sets.length ? `${esc(sessionExerciseSetSummary(ex))} · skipped rest` : 'Skipped this session')
+    : ex.sets.map(s => `${fmtNum(s.weight)}×${s.reps}`).join(' · ');
+  const editAttr = editable ? ` data-toggle-done="${i}"` : '';
   return `
-    <div class="ex-rail-step upcoming dense-collapsed" data-ex-idx="${i}">
-      <div class="ex-rail-node"><span class="ex-rail-circle">${i + 1}</span></div>
-      <div class="ex-rail-body">
+    <div class="ex-rail-step ${skipped ? 'skipped' : 'completed'} dense-collapsed" data-ex-idx="${i}">
+      <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
+      <div class="ex-rail-body${editable ? ' editable' : ''}"${editAttr}>
         <div class="dense-line">
           <div class="ex-rail-name">${name}</div>
-          <span class="badge muted">${ex.targetSets} × ${ex.targetReps}</span>
+          ${badge}
         </div>
+        <div class="dense-summary">${summary}${editable ? ' · tap to edit' : ''}</div>
       </div>
     </div>
   `;

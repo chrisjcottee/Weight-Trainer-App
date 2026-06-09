@@ -262,10 +262,23 @@ function onClick(e) {
     skipExercise(exIdx);
     return;
   }
-  // Reopen a completed exercise in the rail to edit its logged sets
+  // Tap an outstanding exercise to make it the active one
+  const selectActive = e.target.closest && e.target.closest('[data-select-active]');
+  if (selectActive) {
+    setActiveExercise(+selectActive.dataset.selectActive);
+    return;
+  }
+  // Collapse / expand the Completed section
+  if (e.target.closest && e.target.closest('[data-toggle-completed]')) {
+    completedCollapsed = !completedCollapsed;
+    render();
+    return;
+  }
+  // Reopen a completed exercise in the Completed section to edit its logged sets
   const toggleDone = e.target.closest && e.target.closest('[data-toggle-done]');
   if (toggleDone) {
     const idx = +toggleDone.dataset.toggleDone;
+    maybeFlushLinger(idx);
     expandedExIdx = (expandedExIdx === idx) ? null : idx;
     editingSet = null;
     render();
@@ -274,6 +287,7 @@ function onClick(e) {
   const editEl = e.target.closest && e.target.closest('[data-edit-set]');
   if (editEl) {
     const [exIdx, setIdx] = editEl.dataset.editSet.split(',').map(Number);
+    maybeFlushLinger(exIdx);
     editingSet = { exIdx, setIdx };
     render();
     return;
