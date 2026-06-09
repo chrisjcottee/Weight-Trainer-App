@@ -112,7 +112,9 @@ function addSet(exIdx) {
   a.activeExIdx = exIdx;
   expandedExIdx = null;
   editingSet = null;
-  renderRailReorder();
+  // In-place change — re-render without the reorder slide so the view stays put.
+  save();
+  render();
 
   requestAnimationFrame(() => {
     const card = document.querySelector(`.ex-rail-step.active[data-ex-idx="${exIdx}"]`);
@@ -158,7 +160,9 @@ function removeSet(exIdx, si) {
     if (lingeringExIdx === exIdx) lingeringExIdx = null;
     a.activeExIdx = exIdx;
   }
-  renderRailReorder();
+  // In-place change — re-render without the reorder slide so the view stays put.
+  save();
+  render();
 }
 
 /* ---------- Rail reorder animation (FLIP) ---------- */
@@ -393,10 +397,12 @@ function logCurrentSet(row) {
   }
 
   // Exercise complete — it lingers in place (editable). We do NOT auto-advance:
-  // the user selects the next exercise so they can tweak this one first.
+  // the user selects the next exercise so they can tweak this one first. The
+  // card stays where it is, so re-render without the reorder slide.
   lingeringExIdx = exIdx;
   state.active.activeExIdx = -1;
-  renderRailReorder();
+  save();
+  render();
 }
 
 function finishWorkout(opts = {}) {
