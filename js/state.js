@@ -164,7 +164,9 @@ function setState(patch) {
 let state = load();
 let setupDraft = null;  // { name, weeks, days: [...] } while editing in setup screen
 let editingSet = null;  // { exIdx, setIdx } when a logged set is being edited
-let expandedExIdx = null;  // index of a completed exercise expanded for editing in the rail
+let expandedExIdx = null;  // index of a completed exercise expanded for editing in the Completed section
+let lingeringExIdx = null; // a just-completed exercise still shown in place, awaiting the next action
+let completedCollapsed = true; // the Completed section starts collapsed
 let selectedWeekIndex = null; // UI-only selected week on Today
 let expandedDayKey = null;    // UI-only expanded Today day, formatted as "week:day"
 let exerciseLibrarySearch = '';
