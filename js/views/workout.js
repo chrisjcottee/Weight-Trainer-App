@@ -252,13 +252,17 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
   // set removes it; deleting an unlogged (active/upcoming) slot trims the
   // exercise's set count.
   if (logged) {
+    // Celebrate beating the same set from the last completed session.
+    const prog = setProgress(ex, si, logged);
+    const wPr = prog && prog.weight > 0 ? ` <span class="set-pr">+${fmtNum(prog.weight)}</span>` : '';
+    const rPr = prog && prog.reps > 0 ? ` <span class="set-pr">+${prog.reps}</span>` : '';
     return `
       <div class="set-row logged swipe-wrap" data-set-idx="${si}">
         ${setDeleteBtnHtml(exIdx, si)}
         <div class="set-row-face" data-edit-set="${exIdx},${si}">
           <span class="lbl">${si + 1}</span>
-          <span class="val">${fmtNum(logged.weight)} kg</span>
-          <span class="val">× ${logged.reps}</span>
+          <span class="val">${fmtNum(logged.weight)} kg${wPr}</span>
+          <span class="val">× ${logged.reps}${rPr}</span>
           <span class="set-check" aria-hidden="true">✓</span>
         </div>
       </div>

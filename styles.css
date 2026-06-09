@@ -370,6 +370,11 @@
     font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
   }
   .set-row .val { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  /* Progression badge — gain vs the same set last time the exercise was completed */
+  .set-pr {
+    color: var(--success); font-size: 11px; font-weight: 700;
+    font-variant-numeric: tabular-nums; vertical-align: 1px;
+  }
   .set-row.logged .set-row-face {
     background: var(--success-dim);
     cursor: pointer;
