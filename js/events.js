@@ -26,8 +26,9 @@ function onTouchStart(e) {
   suppressNextClick = false;
   if (e.touches.length !== 1) { swipe = null; return; }
   const wrap = e.target.closest && e.target.closest('.set-row.swipe-wrap');
-  // Don't begin a swipe from the trash button itself.
-  if (!wrap || (e.target.closest && e.target.closest('.set-delete'))) { swipe = null; return; }
+  // Don't begin a swipe from the trash button or from a text input (so the
+  // active row's weight field keeps its native touch behaviour).
+  if (!wrap || (e.target.closest && e.target.closest('.set-delete, input'))) { swipe = null; return; }
   const face = wrap.querySelector('.set-row-face');
   if (!face) { swipe = null; return; }
   const t = e.touches[0];

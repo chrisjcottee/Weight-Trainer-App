@@ -7,7 +7,7 @@
    over without users having to close every tab.
 
    IMPORTANT: bump VERSION on every release so old caches drop. */
-const VERSION = 'v24';
+const VERSION = 'v25';
 const CACHE = `wt-${VERSION}`;
 const SHELL = [
   './',
