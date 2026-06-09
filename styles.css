@@ -450,6 +450,42 @@
   .set-row.editing .edit-actions .log-btn:disabled { background: var(--border); color: var(--text-faint); }
   .set-row.editing .edit-actions .cancel-btn { background: var(--card); color: var(--text-dim); border: 1px solid var(--border); }
 
+  /* "+ Add set" button under an exercise's set list */
+  .add-set-btn {
+    display: block; width: 100%; margin-top: 7px;
+    padding: 9px; border: 1px dashed var(--border); border-radius: 11px;
+    background: transparent; color: var(--text-dim);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-set-btn:active { background: var(--bg); }
+
+  /* Swipe-to-reveal delete on a logged set row */
+  .set-row.swipe-wrap {
+    display: block; position: relative; overflow: hidden;
+    padding: 0; background: transparent; border-radius: 11px;
+    touch-action: pan-y;
+  }
+  .set-row.swipe-wrap .set-row-face {
+    display: grid;
+    grid-template-columns: 26px 1fr 1fr 44px;
+    gap: 9px; align-items: center;
+    background: var(--success-dim);
+    border-radius: 11px; padding: 8px 11px;
+    box-sizing: border-box; position: relative; z-index: 1;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.22s cubic-bezier(.2,.7,.2,1);
+    will-change: transform;
+  }
+  .set-row.swipe-wrap .set-row-face:active { filter: brightness(0.96); }
+  .set-row.swipe-wrap.revealed .set-row-face { transform: translateX(-72px); }
+  .set-delete {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 72px;
+    display: flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 11px; background: var(--danger, #e5484d);
+    color: white; cursor: pointer; z-index: 0;
+  }
+
   /* "Last time" reference below the active row — tap to copy into the set */
   .last-chip {
     display: inline-flex; align-items: center;
