@@ -311,7 +311,8 @@
   .ex-rail-body.selectable:active { opacity: 0.7; }
 
   /* Just-completed exercise lingering in place before it files away */
-  .ex-rail-step.linger .ex-rail-body {
+  .ex-rail-step.linger .ex-rail-body,
+  .ex-rail-step.linger .ex-body-face {
     animation: wt-linger-in 260ms ease-out;
   }
   @keyframes wt-linger-in { from { background: var(--success-dim); } to { background: transparent; } }
@@ -488,6 +489,55 @@
     border: 0; border-radius: 11px; background: var(--danger);
     color: white; cursor: pointer; z-index: 0;
   }
+
+  /* Swipe-to-reveal delete on whole exercise rows — removes the exercise
+     from the workout and from the program going forward. The body is the
+     swipe container, so the sliding content clips at its own edge and never
+     crosses into the rail-circle column. */
+  .ex-rail-body.swipe-wrap {
+    position: relative; touch-action: pan-y;
+    clip-path: inset(-6px 0 -6px 0);
+  }
+  .ex-rail-body.swipe-wrap > .ex-body-face {
+    position: relative; z-index: 1;
+    background: var(--card);
+    transition: transform 0.22s cubic-bezier(.2,.7,.2,1);
+    will-change: transform;
+  }
+  .ex-rail-body.swipe-wrap.revealed > .ex-body-face { transform: translateX(-72px); }
+  .ex-delete {
+    /* bottom matches the body's padding-bottom so the button spans exactly
+       the face-covered area */
+    position: absolute; top: 0; right: 0; bottom: 18px; width: 72px;
+    display: flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 11px; background: var(--danger);
+    color: white; cursor: pointer; z-index: 0;
+  }
+  .ex-rail-step:last-child .ex-rail-body.swipe-wrap > .ex-delete { bottom: 0; }
+
+  /* Drag-to-reorder upcoming exercises via the dots handle */
+  .drag-handle {
+    flex-shrink: 0; width: 30px; height: 30px; padding: 0;
+    border: 0; background: transparent; color: var(--text-faint);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: grab; touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ex-rail-step.dragging { z-index: 5; }
+  .ex-rail-step.dragging .drag-handle { cursor: grabbing; }
+  .ex-rail-step.dragging .ex-rail-body {
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  }
+  /* Don't clip the lifted row's shadow while dragging */
+  .ex-rail-step.dragging .ex-rail-body.swipe-wrap { clip-path: none; }
+  .ex-rail-step.drag-sib { transition: transform 0.18s ease; }
+
+  /* Inline "+ Add Exercise" picker on the Workout tab */
+  .add-ex-form { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+  .add-ex-form input { flex: 1; min-width: 0; }
+  .add-ex-form .btn { flex-shrink: 0; }
 
   /* "Last time" reference below the active row — tap to copy into the set */
   .last-chip {
