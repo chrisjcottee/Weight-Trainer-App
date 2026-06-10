@@ -167,6 +167,7 @@ let editingSet = null;  // { exIdx, setIdx } when a logged set is being edited
 let expandedExIdx = null;  // index of a completed exercise expanded for editing in the Completed section
 let lingeringExIdx = null; // a just-completed exercise still shown in place, awaiting the next action
 let completedCollapsed = true; // the Completed section starts collapsed
+let addingExercise = false; // the inline "+ Add Exercise" form on the Workout tab is open
 let selectedWeekIndex = null; // UI-only selected week on Today
 let expandedDayKey = null;    // UI-only expanded Today day, formatted as "week:day"
 let exerciseLibrarySearch = '';

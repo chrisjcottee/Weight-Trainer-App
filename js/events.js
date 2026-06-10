@@ -12,11 +12,102 @@ function bindGlobalEvents() {
   document.addEventListener('touchmove', onTouchMove, { passive: false });
   document.addEventListener('touchend', onTouchEnd);
   document.addEventListener('touchcancel', onTouchEnd);
+  document.addEventListener('pointerdown', onDragHandleDown);
 }
 
-/* ---------- Swipe-to-reveal delete on logged set rows ---------- */
+/* ---------- Drag-to-reorder upcoming exercises ----------
+   Press the dots handle on an upcoming exercise row and drag vertically.
+   The dragged row follows the pointer; siblings shift out of the way. On
+   drop, the new order is committed to the session and the program. */
+let dragEx = null;
+
+function onDragHandleDown(e) {
+  if (e.button != null && e.button !== 0) return;
+  const handle = e.target.closest && e.target.closest('.drag-handle');
+  if (!handle) return;
+  const row = handle.closest('.ex-rail-step');
+  const rail = row && row.closest('.ex-rail');
+  if (!row || !rail) return;
+  const rows = Array.from(rail.querySelectorAll('.ex-rail-step.upcoming'));
+  const fromPos = rows.indexOf(row);
+  if (rows.length < 2 || fromPos < 0) return;
+  e.preventDefault();
+  closeAllReveals(null);
+  dragEx = {
+    pointerId: e.pointerId,
+    handle, row, rows,
+    rects: rows.map(r => r.getBoundingClientRect()),
+    startY: e.clientY,
+    fromPos,
+    curPos: fromPos,
+    moved: false
+  };
+  rows.forEach(r => r.classList.add(r === row ? 'dragging' : 'drag-sib'));
+  try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+  document.addEventListener('pointermove', onDragMove);
+  document.addEventListener('pointerup', onDragEnd);
+  document.addEventListener('pointercancel', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!dragEx || e.pointerId !== dragEx.pointerId) return;
+  const d = dragEx;
+  const dy = e.clientY - d.startY;
+  if (Math.abs(dy) > 4) d.moved = true;
+  d.row.style.transform = `translateY(${dy}px)`;
+
+  const dragRect = d.rects[d.fromPos];
+  // A row is passed once the dragged row's leading edge crosses its center
+  // (i.e. overlaps it by half) — the standard sortable feel.
+  const top = dragRect.top + dy;
+  const bottom = dragRect.bottom + dy;
+  let pos = d.fromPos;
+  d.rows.forEach((r, i) => {
+    if (i === d.fromPos) return;
+    const center = d.rects[i].top + d.rects[i].height / 2;
+    if (i < d.fromPos && top < center) pos--;
+    if (i > d.fromPos && bottom > center) pos++;
+  });
+  d.curPos = pos;
+
+  // Siblings shift by the dragged row's height to open/close the gap.
+  d.rows.forEach((r, i) => {
+    if (i === d.fromPos) return;
+    const without = i < d.fromPos ? i : i - 1; // position with dragged removed
+    const newPos = without >= pos ? without + 1 : without;
+    r.style.transform = newPos !== i ? `translateY(${(newPos - i) * dragRect.height}px)` : '';
+  });
+}
+
+function onDragEnd(e) {
+  if (!dragEx || e.pointerId !== dragEx.pointerId) return;
+  // Fold the release position into the final slot calculation.
+  if (e.type === 'pointerup' && typeof e.clientY === 'number') onDragMove(e);
+  const d = dragEx;
+  dragEx = null;
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', onDragEnd);
+  document.removeEventListener('pointercancel', onDragEnd);
+  // A drag must not double as a tap on the row underneath.
+  suppressNextClick = true;
+  setTimeout(() => { suppressNextClick = false; }, 400);
+
+  const commit = d.moved && e.type !== 'pointercancel' && d.curPos !== d.fromPos;
+  const slotIdxs = d.rows.map(r => +r.dataset.exIdx);
+  const seq = d.rows.map((_, i) => i).filter(i => i !== d.fromPos);
+  seq.splice(d.curPos, 0, d.fromPos);
+  const orderedExIdxs = seq.map(i => +d.rows[i].dataset.exIdx);
+
+  d.rows.forEach(r => {
+    r.style.transform = '';
+    r.classList.remove('dragging', 'drag-sib');
+  });
+  if (commit) reorderWorkoutExercises(slotIdxs, orderedExIdxs);
+}
+
+/* ---------- Swipe-to-reveal delete on set rows and exercise rows ---------- */
 function closeAllReveals(except) {
-  document.querySelectorAll('.set-row.revealed').forEach(el => {
+  document.querySelectorAll('.swipe-wrap.revealed').forEach(el => {
     if (el !== except) el.classList.remove('revealed');
   });
 }
@@ -25,11 +116,13 @@ function onTouchStart(e) {
   // A fresh touch is deliberate intent — never suppress its click.
   suppressNextClick = false;
   if (e.touches.length !== 1) { swipe = null; return; }
-  const wrap = e.target.closest && e.target.closest('.set-row.swipe-wrap');
-  // Don't begin a swipe from the trash button or from a text input (so the
+  // Innermost swipeable wins: a set row inside an exercise card swipes the
+  // set; touching the card elsewhere swipes the whole exercise.
+  const wrap = e.target.closest && e.target.closest('.swipe-wrap');
+  // Don't begin a swipe from a trash button or from a text input (so the
   // active row's weight field keeps its native touch behaviour).
-  if (!wrap || (e.target.closest && e.target.closest('.set-delete, input'))) { swipe = null; return; }
-  const face = wrap.querySelector('.set-row-face');
+  if (!wrap || (e.target.closest && e.target.closest('.set-delete, .ex-delete, .drag-handle, input'))) { swipe = null; return; }
+  const face = wrap.querySelector(':scope > .swipe-face');
   if (!face) { swipe = null; return; }
   const t = e.touches[0];
   swipe = {
@@ -84,6 +177,8 @@ function onFocusIn(e) {
 function onClick(e) {
   // A just-finished swipe shouldn't trigger a tap action.
   if (suppressNextClick) { suppressNextClick = false; return; }
+  // The reorder handle is drag-only — a stray tap on it must not select the row.
+  if (e.target.closest && e.target.closest('.drag-handle')) return;
 
   // Tap the revealed trash button to delete that set.
   const delBtn = e.target.closest && e.target.closest('[data-act="delete-set"]');
@@ -92,8 +187,16 @@ function onClick(e) {
     removeSet(exIdx, si);
     return;
   }
-  // With a set swiped open, the next tap anywhere just closes it.
-  if (document.querySelector('.set-row.revealed')) {
+  // Tap the revealed trash button on an exercise to remove it from the
+  // workout and from the program going forward.
+  const exDelBtn = e.target.closest && e.target.closest('[data-act="delete-ex"]');
+  if (exDelBtn) {
+    closeAllReveals(null);
+    removeExerciseFromWorkout(+exDelBtn.dataset.exIdx);
+    return;
+  }
+  // With a row swiped open, the next tap anywhere just closes it.
+  if (document.querySelector('.swipe-wrap.revealed')) {
     closeAllReveals(null);
     return;
   }
@@ -352,6 +455,28 @@ function onClick(e) {
     addSet(+addSetBtn.dataset.exIdx);
     return;
   }
+  // "+ Add Exercise" — open the inline picker on the Workout tab
+  if (e.target.dataset.act === 'add-ex-workout') {
+    addingExercise = true;
+    render();
+    requestAnimationFrame(() => {
+      const input = document.getElementById('new-workout-ex');
+      if (input) input.focus();
+    });
+    return;
+  }
+  if (e.target.dataset.act === 'confirm-add-ex') {
+    const input = document.getElementById('new-workout-ex');
+    const name = input ? input.value : '';
+    if (withUnloggedSetGuard(() => addExerciseToWorkout(name), 'Add without saving set')) return;
+    addExerciseToWorkout(name);
+    return;
+  }
+  if (e.target.dataset.act === 'cancel-add-ex') {
+    addingExercise = false;
+    render();
+    return;
+  }
   // Tap an outstanding exercise to make it the active one
   const selectActive = e.target.closest && e.target.closest('[data-select-active]');
   if (selectActive) {
@@ -491,6 +616,13 @@ function onKeydown(e) {
       addLibraryExercise();
       return;
     }
+    if (e.target.id === 'new-workout-ex') {
+      e.preventDefault();
+      const name = e.target.value;
+      if (withUnloggedSetGuard(() => addExerciseToWorkout(name), 'Add without saving set')) return;
+      addExerciseToWorkout(name);
+      return;
+    }
     const libraryEditRow = e.target.closest && e.target.closest('.library-row.editing');
     if (libraryEditRow) {
       e.preventDefault();
@@ -513,6 +645,11 @@ function onKeydown(e) {
   if (e.key === 'Escape') {
     if (editingSet) {
       editingSet = null;
+      render();
+      return;
+    }
+    if (addingExercise) {
+      addingExercise = false;
       render();
       return;
     }

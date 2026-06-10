@@ -27,10 +27,17 @@ Views.workout = function() {
     return upNextStepHtml(a.exercises[i], i);
   }).join('');
 
-  const topCard = topHtml ? `<div class="card"><div class="ex-rail">${topHtml}</div></div>` : '';
+  const topCard = `
+    <div class="card">
+      ${topHtml ? `<div class="ex-rail">${topHtml}</div>` : ''}
+      ${addExerciseRowHtml()}
+    </div>`;
   const completedCard = completedSectionHtml(a, linger);
 
   return `
+    <datalist id="exercise-options">
+      ${exerciseNameSuggestions().map(n => `<option value="${esc(n)}">`).join('')}
+    </datalist>
     <div class="workout-top">
       <div style="margin-bottom:13px;">
         <div class="section-label" style="margin-bottom:3px;">Week ${a.weekIndex + 1}</div>
@@ -73,7 +80,9 @@ function activeStepHtml(ex, i) {
   return `
     <div class="ex-rail-step active" data-ex-idx="${i}">
       <div class="ex-rail-node"><span class="ex-rail-circle"></span></div>
-      <div class="ex-rail-body">
+      <div class="ex-rail-body swipe-wrap">
+        ${exDeleteBtnHtml(i)}
+        <div class="ex-body-face swipe-face">
         <div class="dense-line">
           <div style="min-width:0;">
             <div class="rail-eyebrow active">Active</div>
@@ -89,6 +98,7 @@ function activeStepHtml(ex, i) {
           ${Array.from({length: exerciseSlots(ex)}, (_, si) => setRowHtml(ex, i, si, true)).join('')}
         </div>
         ${addSetBtnHtml(i)}
+        </div>
       </div>
     </div>
   `;
@@ -97,6 +107,32 @@ function activeStepHtml(ex, i) {
 // "+ Add set" — appends one more loggable set beyond the allocated target.
 function addSetBtnHtml(exIdx) {
   return `<button type="button" class="add-set-btn" data-act="add-set" data-ex-idx="${exIdx}">+ Add set</button>`;
+}
+
+// "+ Add Exercise" at the bottom of the outstanding list — opens an inline
+// picker using the same exercise-library dropdown as Edit Program. The new
+// exercise is saved to the program going forward.
+function addExerciseRowHtml() {
+  if (!addingExercise) {
+    return `<button type="button" class="add-set-btn add-ex-btn" data-act="add-ex-workout">+ Add Exercise</button>`;
+  }
+  return `
+    <div class="add-ex-form">
+      <input type="text" id="new-workout-ex" list="exercise-options" placeholder="Exercise name" autocomplete="off">
+      <button type="button" class="btn small" data-act="confirm-add-ex">Add</button>
+      <button type="button" class="btn icon" data-act="cancel-add-ex" title="Cancel">×</button>
+    </div>
+  `;
+}
+
+function exDeleteBtnHtml(exIdx) {
+  return `<button type="button" class="ex-delete" data-act="delete-ex" data-ex-idx="${exIdx}" aria-label="Remove exercise" tabindex="-1">${TRASH_SVG}</button>`;
+}
+
+const DRAG_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>';
+
+function dragHandleHtml() {
+  return `<button type="button" class="drag-handle" aria-label="Reorder exercise" tabindex="-1">${DRAG_SVG}</button>`;
 }
 
 // An outstanding exercise that isn't active yet — tap to make it active. Blank circle.
@@ -112,12 +148,15 @@ function upNextStepHtml(ex, i) {
   return `
     <div class="ex-rail-step upcoming dense-collapsed" data-ex-idx="${i}">
       <div class="ex-rail-node"><span class="ex-rail-circle"></span></div>
-      <div class="ex-rail-body selectable" data-select-active="${i}">
-        <div class="dense-line">
-          <div class="ex-rail-name">${name}</div>
-          ${badge}
+      <div class="ex-rail-body selectable swipe-wrap" data-select-active="${i}">
+        ${exDeleteBtnHtml(i)}
+        <div class="ex-body-face swipe-face">
+          <div class="dense-line">
+            <div class="ex-rail-name">${name}</div>
+            <span class="row" style="gap:2px;">${badge}${dragHandleHtml()}</span>
+          </div>
+          <div class="dense-summary">${summary}</div>
         </div>
-        <div class="dense-summary">${summary}</div>
       </div>
     </div>
   `;
@@ -130,7 +169,9 @@ function lingerStepHtml(ex, i) {
   return `
     <div class="ex-rail-step completed expanded linger" data-ex-idx="${i}">
       <div class="ex-rail-node"><span class="ex-rail-circle">✓</span></div>
-      <div class="ex-rail-body">
+      <div class="ex-rail-body swipe-wrap">
+        ${exDeleteBtnHtml(i)}
+        <div class="ex-body-face swipe-face">
         <div class="dense-line">
           <div style="min-width:0;">
             <div class="rail-eyebrow done">Completed</div>
@@ -143,6 +184,7 @@ function lingerStepHtml(ex, i) {
           ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
         </div>
         ${addSetBtnHtml(i)}
+        </div>
       </div>
     </div>
   `;
@@ -176,19 +218,27 @@ function completedSectionHtml(a, linger) {
 // A row inside the Completed section — tap to expand and edit its logged sets.
 function completedRowHtml(ex, i) {
   const skipped = !!ex.skipped;
+  const removed = !!ex.removed;
   const name = esc(ex.name);
   const circle = skipped ? '–' : '✓';
-  const badge = skipped
-    ? `<span class="badge warn">${ex.sets.length ? 'Skipped rest' : 'Skipped'}</span>`
-    : `<span class="badge success">${ex.sets.length}/${exerciseSlots(ex)} ✓</span>`;
+  const badge = removed
+    ? `<span class="badge warn">Removed</span>`
+    : skipped
+      ? `<span class="badge warn">${ex.sets.length ? 'Skipped rest' : 'Skipped'}</span>`
+      : `<span class="badge success">${ex.sets.length}/${exerciseSlots(ex)} ✓</span>`;
   const editable = ex.sets.length > 0;
   const expanded = editable && i === expandedExIdx;
+  // An already-removed exercise can't be swiped away again.
+  const wrapOpen = removed
+    ? (extra) => `<div class="ex-rail-body${extra.cls || ''}"${extra.attrs || ''}>`
+    : (extra) => `<div class="ex-rail-body swipe-wrap${extra.cls || ''}"${extra.attrs || ''}>${exDeleteBtnHtml(i)}<div class="ex-body-face swipe-face">`;
+  const wrapClose = removed ? '</div>' : '</div></div>';
 
   if (expanded) {
     return `
       <div class="ex-rail-step ${skipped ? 'skipped' : 'completed'} expanded" data-ex-idx="${i}">
         <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
-        <div class="ex-rail-body">
+        ${wrapOpen({})}
           <div class="dense-line edit-toggle" data-toggle-done="${i}">
             <div class="ex-rail-name">${name}</div>
             ${badge}
@@ -197,26 +247,28 @@ function completedRowHtml(ex, i) {
           <div class="sets-modern">
             ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
           </div>
-          ${addSetBtnHtml(i)}
-        </div>
+          ${removed ? '' : addSetBtnHtml(i)}
+        ${wrapClose}
       </div>
     `;
   }
 
-  const summary = skipped
-    ? (ex.sets.length ? `${esc(sessionExerciseSetSummary(ex))} · skipped rest` : 'Skipped this session')
-    : ex.sets.map(s => `${fmtNum(s.weight)}×${s.reps}`).join(' · ');
+  const summary = removed
+    ? (ex.sets.length ? `${esc(sessionExerciseSetSummary(ex))} · removed from program` : 'Removed from program')
+    : skipped
+      ? (ex.sets.length ? `${esc(sessionExerciseSetSummary(ex))} · skipped rest` : 'Skipped this session')
+      : ex.sets.map(s => `${fmtNum(s.weight)}×${s.reps}`).join(' · ');
   const editAttr = editable ? ` data-toggle-done="${i}"` : '';
   return `
     <div class="ex-rail-step ${skipped ? 'skipped' : 'completed'} dense-collapsed" data-ex-idx="${i}">
       <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
-      <div class="ex-rail-body${editable ? ' editable' : ''}"${editAttr}>
+      ${wrapOpen({ cls: editable ? ' editable' : '', attrs: editAttr })}
         <div class="dense-line">
           <div class="ex-rail-name">${name}</div>
           ${badge}
         </div>
         <div class="dense-summary">${summary}${editable ? ' · tap to edit' : ''}</div>
-      </div>
+      ${wrapClose}
     </div>
   `;
 }
@@ -259,7 +311,7 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
     return `
       <div class="set-row logged swipe-wrap" data-set-idx="${si}">
         ${setDeleteBtnHtml(exIdx, si)}
-        <div class="set-row-face" data-edit-set="${exIdx},${si}">
+        <div class="set-row-face swipe-face" data-edit-set="${exIdx},${si}">
           <span class="lbl">${si + 1}</span>
           <span class="val">${fmtNum(logged.weight)} kg${wPr}</span>
           <span class="val">× ${logged.reps}${rPr}</span>
@@ -273,7 +325,7 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
     return `
       <div class="set-row pending swipe-wrap" data-set-idx="${si}">
         ${setDeleteBtnHtml(exIdx, si)}
-        <div class="set-row-face">
+        <div class="set-row-face swipe-face">
           <span class="lbl">${si + 1}</span>
           <span class="val">– kg</span>
           <span class="val">× –</span>
@@ -291,7 +343,7 @@ function setRowHtml(ex, exIdx, si, isCurrentEx) {
   return `
     <div class="set-row active swipe-wrap" data-set-idx="${si}">
       ${setDeleteBtnHtml(exIdx, si)}
-      <div class="set-row-face">
+      <div class="set-row-face swipe-face">
         <span class="lbl">${si + 1}</span>
         <input type="tel" inputmode="decimal" class="set-w" value="${wHasValue ? wPrefill : ''}" placeholder="kg" autocomplete="off" maxlength="6">
         ${repsStepperHtml(rPrefill)}

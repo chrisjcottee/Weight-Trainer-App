@@ -9,6 +9,7 @@ function startWorkout(dayIndex) {
   expandedExIdx = null;
   lingeringExIdx = null;
   completedCollapsed = true;
+  addingExercise = false;
   selectedWeekIndex = state.currentRun.weekIndex || 0;
   expandedDayKey = dayKey(selectedWeekIndex, dayIndex);
   state.active = {
@@ -133,6 +134,204 @@ function addSet(exIdx) {
     const w = row.querySelector('.set-w');
     if (w) w.focus();
   });
+}
+
+/* ---------- Mid-workout add / remove exercise ---------- */
+// The template day this active workout was started from.
+function templateDayForActive() {
+  const a = state.active;
+  if (!a || !state.program) return null;
+  return state.program.template[a.dayIndex] || null;
+}
+
+// a.exercises minus removed-but-retained entries lines up 1:1 with the
+// template day's exercise list, so the template index for an active-workout
+// exercise is its position among the non-removed entries.
+function templateIdxForExercise(exIdx) {
+  const a = state.active;
+  let n = 0;
+  for (let i = 0; i < exIdx; i++) if (!a.exercises[i].removed) n++;
+  return n;
+}
+
+// Persist state.program.template into the matching library record so
+// mid-workout program edits survive program switches.
+function syncActiveProgramRecord() {
+  if (!state.program || !state.activeProgramId) return;
+  state.programLibrary = normalizeProgramLibrary(state);
+  const rec = state.programLibrary.find(p => p.id === state.activeProgramId);
+  if (!rec) return;
+  rec.template = structuredClone(state.program.template);
+  rec.updatedAt = Date.now();
+}
+
+// "+ Add Exercise" on the Workout tab — appends to today's workout AND to the
+// program template (1 set × 0 reps placeholder), then makes it active.
+function addExerciseToWorkout(name) {
+  const a = state.active;
+  if (!a) return;
+  const clean = String(name || '').trim();
+  if (!clean) {
+    showModal({
+      title: 'Name required',
+      body: 'Enter an exercise name first.',
+      confirmText: 'OK',
+      hideCancel: true,
+      onConfirm: closeModal
+    });
+    return;
+  }
+  const entry = ensureExerciseInLibrary(clean);
+  const finalName = entry ? entry.name : clean;
+  const day = templateDayForActive();
+  if (day) {
+    day.exercises.push({ name: finalName, sets: 1, reps: 0 });
+    syncActiveProgramRecord();
+  }
+  a.exercises.push({
+    name: finalName,
+    targetSets: 1,
+    targetReps: 0,
+    sets: [],
+    skipped: false,
+    addedMidWorkout: true
+  });
+  const idx = a.exercises.length - 1;
+  reclaimExtraSlots(idx);
+  maybeFlushLinger(idx);
+  a.activeExIdx = idx;
+  addingExercise = false;
+  editingSet = null;
+  renderRailReorder();
+  requestAnimationFrame(() => {
+    const card = document.querySelector(`.ex-rail-step.active[data-ex-idx="${idx}"]`);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+// Swipe-to-delete an exercise — removes it from the program going forward.
+// Sets already logged this session stay saved: the exercise is retained in the
+// session (marked removed) and files into the Completed section.
+function removeExerciseFromWorkout(exIdx) {
+  const a = state.active;
+  if (!a) return;
+  const ex = a.exercises[exIdx];
+  if (!ex || ex.removed) return;
+  if (a.exercises.filter(e => !e.removed).length <= 1) {
+    showModal({
+      title: 'Cannot remove',
+      body: 'A workout needs at least one exercise.',
+      confirmText: 'OK',
+      hideCancel: true,
+      onConfirm: closeModal
+    });
+    return;
+  }
+  const hasSets = ex.sets.length > 0;
+  showModal({
+    title: 'Remove exercise?',
+    body: hasSets
+      ? `${ex.name} will be removed from ${a.dayName} going forward. The ${ex.sets.length} set${ex.sets.length === 1 ? '' : 's'} you logged today stay${ex.sets.length === 1 ? 's' : ''} saved.`
+      : `${ex.name} will be removed from this workout and from ${a.dayName} going forward.`,
+    confirmText: 'Remove',
+    danger: true,
+    onConfirm: () => {
+      closeModal();
+      // Remove from the program template (and saved program) first, while the
+      // non-removed entries still line up with the template.
+      const day = templateDayForActive();
+      if (day) {
+        let ti = templateIdxForExercise(exIdx);
+        if (!day.exercises[ti] || day.exercises[ti].name !== ex.name) {
+          ti = day.exercises.findIndex(e => e.name === ex.name);
+        }
+        if (ti >= 0) day.exercises.splice(ti, 1);
+        syncActiveProgramRecord();
+      }
+      if (hasSets) {
+        // Keep the logged sets in the session: retain the exercise, trim its
+        // slots to what was logged so it resolves into the Completed section.
+        ex.removed = true;
+        setExerciseSlots(ex, ex.sets.length);
+        if (a.activeExIdx === exIdx) a.activeExIdx = -1;
+        if (lingeringExIdx === exIdx) lingeringExIdx = null;
+      } else {
+        a.exercises.splice(exIdx, 1);
+        if (a.activeExIdx != null && a.activeExIdx >= 0) {
+          a.activeExIdx = a.activeExIdx === exIdx ? -1 : a.activeExIdx > exIdx ? a.activeExIdx - 1 : a.activeExIdx;
+        }
+        const shift = v => (v == null || v === exIdx) ? null : v > exIdx ? v - 1 : v;
+        lingeringExIdx = shift(lingeringExIdx);
+        expandedExIdx = shift(expandedExIdx);
+        if (editingSet) {
+          if (editingSet.exIdx === exIdx) editingSet = null;
+          else if (editingSet.exIdx > exIdx) editingSet.exIdx--;
+        }
+      }
+      renderRailReorder();
+    }
+  });
+}
+
+// Drag-to-reorder the upcoming exercises. slotIdxs are the array positions
+// being permuted (ascending); orderedExIdxs is the same set of indices in
+// their new visual order. The program template (and the saved program in the
+// library) get the same new order going forward.
+function reorderWorkoutExercises(slotIdxs, orderedExIdxs) {
+  const a = state.active;
+  if (!a || slotIdxs.length !== orderedExIdxs.length) return;
+  const day = templateDayForActive();
+  // Resolve template positions/items BEFORE mutating the session array.
+  const tplSlots = day ? slotIdxs.map(i => templateIdxForExercise(i)) : [];
+  const tplItems = day ? orderedExIdxs.map(i => {
+    let ti = templateIdxForExercise(i);
+    const ex = a.exercises[i];
+    if (!day.exercises[ti] || day.exercises[ti].name !== ex.name) {
+      ti = day.exercises.findIndex(t => t.name === ex.name);
+    }
+    return day.exercises[ti] || null;
+  }) : [];
+  const exItems = orderedExIdxs.map(i => a.exercises[i]);
+  slotIdxs.forEach((slot, k) => { a.exercises[slot] = exItems[k]; });
+  if (day && tplItems.length && tplItems.every(Boolean)) {
+    tplSlots.forEach((slot, k) => { day.exercises[slot] = tplItems[k]; });
+    syncActiveProgramRecord();
+  }
+  save();
+  render();
+}
+
+// Exercises added mid-workout enter the template as a 1×0 placeholder; once
+// the workout is saved, record what was actually performed.
+function persistAddedExerciseTargets(a) {
+  const day = templateDayForActive();
+  if (!day) return;
+  let changed = false;
+  a.exercises.forEach((ex, i) => {
+    if (!ex.addedMidWorkout || ex.removed || !ex.sets.length) return;
+    let ti = templateIdxForExercise(i);
+    if (!day.exercises[ti] || day.exercises[ti].name !== ex.name) {
+      ti = day.exercises.findIndex(e => e.name === ex.name);
+    }
+    const tpl = day.exercises[ti];
+    if (!tpl) return;
+    tpl.sets = ex.sets.length;
+    tpl.reps = modeReps(ex.sets);
+    changed = true;
+  });
+  if (changed) syncActiveProgramRecord();
+}
+
+// The most common rep count across logged sets (latest wins a tie).
+function modeReps(sets) {
+  const counts = new Map();
+  let best = sets[0] ? sets[0].reps : 0;
+  sets.forEach(s => {
+    const n = (counts.get(s.reps) || 0) + 1;
+    counts.set(s.reps, n);
+    if (n >= (counts.get(best) || 0)) best = s.reps;
+  });
+  return best;
 }
 
 // Set the number of set rows an exercise shows, by deriving extraSets from it.
@@ -408,6 +607,7 @@ function logCurrentSet(row) {
 function finishWorkout(opts = {}) {
   const a = state.active;
   if (!a) return;
+  persistAddedExerciseTargets(a);
   const exsWithSets = a.exercises.filter(e => e.sets.length > 0);
   const sessionExercises = a.exercises.filter(e => e.sets.length > 0 || e.skipped);
   if (!sessionExercises.length) {
@@ -433,6 +633,7 @@ function finishWorkout(opts = {}) {
       sets: e.sets,
       skipped: !!e.skipped,
       skippedAt: e.skippedAt || null,
+      removed: !!e.removed,
       targetSets: e.targetSets,
       targetReps: e.targetReps
     }))
@@ -533,6 +734,7 @@ function finishWorkout(opts = {}) {
   expandedExIdx = null;
   lingeringExIdx = null;
   completedCollapsed = true;
+  addingExercise = false;
   save();
   render();
 }

@@ -265,15 +265,21 @@ function exerciseStepperHtml(day, weekIndex, dayIndex, session) {
     state.active.dayIndex === dayIndex
       ? state.active
       : null;
-  const firstOpen = activeWorkout
-    ? activeWorkout.exercises.findIndex(e => !exerciseIsResolved(e))
+  // Exercises removed mid-workout stay in the active session (to keep their
+  // logged sets) but no longer exist in the template, so line the template up
+  // against the non-removed entries only.
+  const liveExercises = activeWorkout
+    ? activeWorkout.exercises.filter(e => !e.removed)
+    : null;
+  const firstOpen = liveExercises
+    ? liveExercises.findIndex(e => !exerciseIsResolved(e))
     : -1;
   const usedSessionExercises = new Set();
 
   return `
     <div class="exercise-stepper">
       ${day.exercises.map((planned, i) => {
-        const activeEx = activeWorkout ? activeWorkout.exercises[i] : null;
+        const activeEx = liveExercises ? liveExercises[i] : null;
         const sessionEx = activeEx ? null : matchingSessionExercise(session, planned, i, usedSessionExercises);
         const source = activeEx || sessionEx || planned;
         const targetSets = source.targetSets || planned.sets;
