@@ -30,7 +30,8 @@ function migrate(s) {
   const newCR = {
     startedAt: cr.startedAt || Date.now(),
     weekIndex: typeof cr.weekIndex === 'number' ? cr.weekIndex : 0,
-    completedDayIndices: Array.isArray(cr.completedDayIndices) ? cr.completedDayIndices : []
+    completedDayIndices: Array.isArray(cr.completedDayIndices) ? cr.completedDayIndices : [],
+    calendarAnchored: !!cr.calendarAnchored
   };
   // Migrate old completedDayCount → weekIndex/completedDayIndices
   if (typeof cr.completedDayCount === 'number' && !Array.isArray(cr.completedDayIndices)) {
@@ -41,6 +42,15 @@ function migrate(s) {
     newCR.completedDayIndices = Array.from({ length: remainder }, (_, i) => i);
   }
   s.currentRun = newCR;
+  // Calendar-week model: weeks are real Mon–Sun weeks anchored to startedAt.
+  // Re-anchor once so an existing run's week number maps onto the calendar:
+  // “you're in week N” stays true, with week N being THIS calendar week.
+  if (!newCR.calendarAnchored) {
+    const monday = new Date(); monday.setHours(0, 0, 0, 0);
+    const mondayTs = monday.getTime() - ((monday.getDay() + 6) % 7) * 86400000;
+    newCR.startedAt = mondayTs - (newCR.weekIndex || 0) * 7 * 86400000;
+    newCR.calendarAnchored = true;
+  }
   s.programLibrary = normalizeProgramLibrary(s);
   if (!s.activeProgramId && s.programLibrary.length) {
     s.activeProgramId = s.programLibrary.find(p => !p.archived)?.id || null;
@@ -168,6 +178,9 @@ let expandedExIdx = null;  // index of a completed exercise expanded for editing
 let lingeringExIdx = null; // a just-completed exercise still shown in place, awaiting the next action
 let completedCollapsed = true; // the Completed section starts collapsed
 let addingExercise = false; // the inline "+ Add Exercise" form on the Workout tab is open
+let selectedDateTs = null;    // UI-only selected calendar day on the Program tab (defaults to today)
+let calendarExpanded = false; // Program calendar showing all weeks vs. just the current one
+let expandedPickIdx = null;   // due-workout card expanded to preview its exercises
 let selectedWeekIndex = null; // UI-only selected week on Today
 let expandedDayKey = null;    // UI-only expanded Today day, formatted as "week:day"
 let exerciseLibrarySearch = '';

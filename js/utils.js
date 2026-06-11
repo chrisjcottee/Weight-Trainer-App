@@ -241,3 +241,75 @@ function sessionSummaryText(session) {
   );
 }
 
+/* ---------- Calendar weeks (Mon–Sun) ----------
+   The program is anchored to real calendar weeks: week 1 is the Mon–Sun
+   window containing currentRun.startedAt, and the "current week" advances
+   with the date — not with workout completion. Required workouts can be done
+   in any order within the week; completion is derived from logged sessions'
+   dates rather than tracked separately. */
+const WEEK_MS = 7 * 86400000;
+
+function dayStartTs(ts) {
+  const d = new Date(ts);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function mondayOfTs(ts) {
+  const d = new Date(dayStartTs(ts));
+  return d.getTime() - ((d.getDay() + 6) % 7) * 86400000;
+}
+
+function programStartMonday() {
+  return mondayOfTs(state.currentRun.startedAt || Date.now());
+}
+
+// Which program week (0-based) a timestamp falls in. May be < 0 or >= weeks.
+function calendarWeekOfTs(ts) {
+  return Math.floor((mondayOfTs(ts) - programStartMonday()) / WEEK_MS);
+}
+
+function weekStartTs(weekIndex) {
+  return programStartMonday() + weekIndex * WEEK_MS;
+}
+
+function sameLocalDay(a, b) {
+  return dayStartTs(a) === dayStartTs(b);
+}
+
+// Whether a saved session resolved every exercise. Newer sessions carry the
+// flag; older ones fall back to a best-effort check against targets.
+function sessionIsComplete(s) {
+  if (!s) return false;
+  if (s.fullyComplete != null) return !!s.fullyComplete;
+  return s.exercises.every(e => e.skipped || e.sets.length >= (e.targetSets || 0));
+}
+
+function sessionsOnDate(ts) {
+  return activeProgramSessions().filter(s => sameLocalDay(s.date, ts));
+}
+
+// Template-day indices completed (fully) in a calendar week, from sessions.
+function completedDayIdxsInCalendarWeek(weekIndex) {
+  if (!state.program) return [];
+  const start = weekStartTs(weekIndex);
+  const end = start + WEEK_MS;
+  const idxs = new Set();
+  activeProgramSessions().forEach(s => {
+    if (s.date >= start && s.date < end && s.dayIndex != null && sessionIsComplete(s)) {
+      idxs.add(s.dayIndex);
+    }
+  });
+  return Array.from(idxs).filter(i => i < state.program.template.length);
+}
+
+// Keep currentRun in line with the calendar. weekIndex may equal program.weeks
+// (or more) once the final week has passed — that's what completes the program.
+function syncCalendarRun() {
+  if (!state.program) return;
+  if (!state.currentRun.startedAt) state.currentRun.startedAt = Date.now();
+  const wk = Math.max(0, calendarWeekOfTs(Date.now()));
+  state.currentRun.weekIndex = wk;
+  state.currentRun.completedDayIndices =
+    completedDayIdxsInCalendarWeek(Math.min(wk, state.program.weeks - 1));
+}
