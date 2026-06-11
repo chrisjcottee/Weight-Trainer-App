@@ -2,7 +2,7 @@
 function startWorkout(dayIndex) {
   if (programIsComplete()) return;
   if (dayIsDoneThisWeek(dayIndex)) return;
-  if (dayIndex !== nextDayIndex()) return;
+  if (state.active) return;
   const day = state.program.template[dayIndex];
   if (!day) return;
   editingSet = null;
@@ -607,6 +607,12 @@ function logCurrentSet(row) {
 function finishWorkout(opts = {}) {
   const a = state.active;
   if (!a) return;
+  // Editing a previously-logged session: replace it in place. No XP, streak
+  // or celebration — the original workout already earned those.
+  if (a.editOfDate != null) {
+    finishSessionEdit(a);
+    return;
+  }
   persistAddedExerciseTargets(a);
   const exsWithSets = a.exercises.filter(e => e.sets.length > 0);
   const sessionExercises = a.exercises.filter(e => e.sets.length > 0 || e.skipped);
@@ -643,6 +649,7 @@ function finishWorkout(opts = {}) {
   // Determine if the day has been resolved: every exercise logged or explicitly skipped.
   const fullyComplete = !opts.partial &&
     a.exercises.every(exerciseIsResolved);
+  session.fullyComplete = fullyComplete;
 
   let xpEarned = 0;
   let weekComplete = false;
@@ -684,15 +691,14 @@ function finishWorkout(opts = {}) {
       state.currentRun.completedDayIndices.push(a.dayIndex);
     }
 
-    // Week complete?
+    // Week complete? Weeks are calendar weeks now — the week number advances
+    // with the date (syncCalendarRun), never here.
     if (state.currentRun.completedDayIndices.length >= state.program.template.length) {
       weekComplete = true;
       xpEarned += 500;
-      state.currentRun.weekIndex += 1;
-      state.currentRun.completedDayIndices = [];
 
-      // Program complete?
-      if (programIsComplete()) {
+      // Final week fully done = program complete.
+      if (currentWeekIndex() >= state.program.weeks - 1) {
         programComplete = true;
         xpEarned += 2500;
       }
@@ -739,3 +745,95 @@ function finishWorkout(opts = {}) {
   render();
 }
 
+/* ---------- Logged-session edit / delete (Program calendar) ---------- */
+// Reopen a saved session in the Workout tab. Finishing replaces the original
+// log (same date) instead of appending a new one.
+function editLoggedSession(sessionIdx) {
+  const s = state.sessions[sessionIdx];
+  if (!s || state.active) return;
+  editingSet = null;
+  expandedExIdx = null;
+  lingeringExIdx = null;
+  completedCollapsed = true;
+  addingExercise = false;
+  state.active = {
+    programId: s.programId || state.activeProgramId || null,
+    programName: s.programName || (state.program && state.program.name) || '',
+    weekIndex: s.weekIndex || 0,
+    dayIndex: s.dayIndex || 0,
+    dayName: s.dayName || 'Workout ' + ((s.dayIndex || 0) + 1),
+    startedAt: s.date,
+    editOfDate: s.date,
+    activeExIdx: -1,
+    exercises: s.exercises.map(e => {
+      const targetSets = e.targetSets || e.sets.length || 1;
+      return {
+        name: e.name,
+        targetSets,
+        targetReps: e.targetReps || 0,
+        sets: structuredClone(e.sets),
+        skipped: !!e.skipped,
+        removed: !!e.removed,
+        extraSets: Math.max(0, e.sets.length - targetSets)
+      };
+    })
+  };
+  state.tab = 'workout';
+  save();
+  render();
+}
+
+// Swap the edited exercises back into the original session record.
+function finishSessionEdit(a) {
+  const idx = state.sessions.findIndex(s => s.date === a.editOfDate);
+  const editedExercises = a.exercises.filter(e => e.sets.length > 0 || e.skipped);
+  if (idx >= 0) {
+    if (editedExercises.length) {
+      const orig = state.sessions[idx];
+      state.sessions[idx] = Object.assign({}, orig, {
+        exercises: editedExercises.map(e => ({
+          name: e.name,
+          sets: e.sets,
+          skipped: !!e.skipped,
+          skippedAt: e.skippedAt || null,
+          removed: !!e.removed,
+          targetSets: e.targetSets,
+          targetReps: e.targetReps
+        })),
+        fullyComplete: a.exercises.every(exerciseIsResolved)
+      });
+    } else {
+      // Every set was deleted — the log is gone.
+      state.sessions.splice(idx, 1);
+    }
+  }
+  syncCalendarRun();
+  state.active = null;
+  editingSet = null;
+  expandedExIdx = null;
+  lingeringExIdx = null;
+  completedCollapsed = true;
+  addingExercise = false;
+  state.tab = 'today';
+  save();
+  render();
+}
+
+function deleteLoggedSession(sessionIdx) {
+  const s = state.sessions[sessionIdx];
+  if (!s) return;
+  const when = new Date(s.date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  showModal({
+    title: 'Delete this log?',
+    body: (s.dayName || 'This workout') + ' on ' + when + ' will be removed from the calendar. This cannot be undone.',
+    confirmText: 'Delete',
+    danger: true,
+    onConfirm: () => {
+      state.sessions.splice(sessionIdx, 1);
+      syncCalendarRun();
+      closeModal();
+      save();
+      render();
+    }
+  });
+}

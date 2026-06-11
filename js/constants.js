@@ -1,7 +1,7 @@
 'use strict';
 
 /* ---------- State ---------- */
-const APP_VERSION = 'v21 · sw cache fix';
+const APP_VERSION = 'v22 · program calendar';
 
 const EXERCISE_LIBRARY = [
   // Squat / quad

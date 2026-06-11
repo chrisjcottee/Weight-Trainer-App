@@ -1369,3 +1369,96 @@
     margin: 32px 0 8px;
     font-variant-numeric: tabular-nums;
   }
+
+  /* ---------- Program tab: calendar tracker ---------- */
+  .program-sub { color: var(--text-dim); font-size: 15px; font-weight: 500; margin-top: 3px; }
+
+  /* Per-workout colors (template day index mod 6). c0 = app accent. */
+  :root {
+    --day-c0: #0071e3;
+    --day-c1: oklch(0.55 0.18 305);
+    --day-c2: oklch(0.58 0.12 175);
+    --day-c3: oklch(0.68 0.15 65);
+    --day-c4: oklch(0.62 0.17 0);
+    --day-c5: oklch(0.62 0.17 145);
+  }
+  .day-c0 { --day-c: var(--day-c0); }
+  .day-c1 { --day-c: var(--day-c1); }
+  .day-c2 { --day-c: var(--day-c2); }
+  .day-c3 { --day-c: var(--day-c3); }
+  .day-c4 { --day-c: var(--day-c4); }
+  .day-c5 { --day-c: var(--day-c5); }
+
+  .cal-card .program-name { font-size: 19px; font-weight: 700; }
+  .cal-legend {
+    display: flex; gap: 5px 12px; align-items: center; justify-content: flex-end;
+    flex-wrap: wrap; max-width: 55%; padding-top: 3px;
+  }
+  .cal-legend .key {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600; color: var(--text-dim); white-space: nowrap;
+  }
+  .cal-legend .swatch { width: 8px; height: 8px; border-radius: 50%; background: var(--day-c); flex-shrink: 0; }
+
+  .cal-rows { display: flex; flex-direction: column; gap: 3px; margin-top: 12px; }
+  .cal-row { display: grid; grid-template-columns: 26px repeat(7, 1fr); gap: 3px; align-items: center; }
+  .cal-row.active { background: var(--accent-dim); border-radius: 999px; margin: 0 -6px; padding: 3px 6px; }
+  .cal-row.active .cal-wk-label { color: var(--accent); }
+  .cal-row.active .cal-cell { background: white; }
+  .cal-wk-label {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .cal-dow { text-align: center; font-size: 11px; font-weight: 600; color: var(--text-dim); padding-bottom: 2px; }
+  .cal-cell {
+    aspect-ratio: 1; border-radius: 50%; background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+    color: var(--text-dim); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cal-cell.future { color: var(--text-faint); background: color-mix(in srgb, var(--bg) 55%, white); cursor: default; }
+  .cal-cell.logged { background: var(--day-c); color: white; }
+  .cal-row.active .cal-cell.logged { background: var(--day-c); }
+  .cal-cell.today { box-shadow: 0 0 0 2px var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .cal-cell.today.logged { color: white; background: var(--day-c); }
+  .cal-cell.selected { box-shadow: 0 0 0 2px var(--text); }
+
+  .expand-btn {
+    width: calc(100% + 32px); margin: 12px -16px -16px; padding: 11px 0 13px;
+    border: none; border-top: 1px solid var(--border); background: transparent;
+    color: var(--accent); font-family: inherit; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .expand-btn .chev { font-size: 11px; }
+
+  .cal-day-label { margin: 18px 2px 8px; }
+  .cal-hint { margin: 2px 2px 0; }
+
+  /* Due-workout cards (today) */
+  .pick-card { -webkit-tap-highlight-color: transparent; }
+  .pick-head { display: flex; align-items: center; gap: 12px; }
+  .pick-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--day-c); flex-shrink: 0; }
+  .pick-main { flex: 1; min-width: 0; }
+  .pick-name { font-size: 17px; font-weight: 700; }
+  .pick-meta { font-size: 13px; color: var(--text-dim); margin-top: 1px; }
+  .pick-chev { color: var(--text-faint); font-size: 14px; flex-shrink: 0; }
+  .pick-ex { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 6px; }
+  .pick-ex-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: baseline;
+    padding: 5px 0; font-size: 14px; border-bottom: 1px solid var(--border);
+  }
+  .pick-ex-row:last-child { border-bottom: none; }
+  .pick-ex-row .nm { font-weight: 500; }
+  .pick-ex-row .tgt { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+  /* Logged-session card on a selected day */
+  .logged-session { display: flex; align-items: center; gap: 12px; }
+  .logged-session .log-main { flex: 1; min-width: 0; }
+  .logged-session .log-name { font-size: 16px; font-weight: 700; }
+  .logged-session .log-meta { font-size: 13px; color: var(--text-dim); margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .dd-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .dd-actions .btn { flex: 1; }
+  .btn.ghost-danger { background: #fdeceb; color: var(--danger); }

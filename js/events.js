@@ -280,16 +280,44 @@ function onClick(e) {
     return;
   }
 
-  // Today
+  // Program tab (calendar)
   const weekEl = e.target.closest && e.target.closest('[data-select-week]');
   if (weekEl) {
-    selectedWeekIndex = clampWeekIndex(weekEl.dataset.selectWeek);
-    expandedDayKey = defaultExpandedDayKey(selectedWeekIndex);
+    calendarExpanded = true;
     render();
+    return;
+  }
+  const dayCell = e.target.closest && e.target.closest('[data-select-date]');
+  if (dayCell) {
+    selectedDateTs = parseInt(dayCell.dataset.selectDate, 10);
+    expandedPickIdx = null;
+    render();
+    return;
+  }
+  if (e.target.closest && e.target.closest('#toggle-calendar')) {
+    calendarExpanded = !calendarExpanded;
+    render();
+    return;
+  }
+  const editSessionBtn = e.target.closest && e.target.closest('[data-edit-session]');
+  if (editSessionBtn) {
+    editLoggedSession(parseInt(editSessionBtn.dataset.editSession, 10));
+    return;
+  }
+  const delSessionBtn = e.target.closest && e.target.closest('[data-delete-session]');
+  if (delSessionBtn) {
+    deleteLoggedSession(parseInt(delSessionBtn.dataset.deleteSession, 10));
     return;
   }
   if (e.target.dataset.startDay != null) {
     startWorkout(parseInt(e.target.dataset.startDay, 10));
+    return;
+  }
+  const pickEl = e.target.closest && e.target.closest('[data-toggle-pick]');
+  if (pickEl) {
+    const i = parseInt(pickEl.dataset.togglePick, 10);
+    expandedPickIdx = expandedPickIdx === i ? null : i;
+    render();
     return;
   }
   const expandEl = e.target.closest && e.target.closest('[data-expand-day-key]');
@@ -528,13 +556,8 @@ function onClick(e) {
   }
 
   if (e.target.id === 'celebrate-continue') {
-    const c = state.celebration;
-    if (c && c.type === 'workout' && c.fullyComplete) {
-      selectedWeekIndex = c.weekComplete || c.programComplete ? currentWeekIndex() : clampWeekIndex(c.weekIndex);
-      expandedDayKey = c.weekComplete || c.programComplete
-        ? defaultExpandedDayKey(selectedWeekIndex)
-        : dayKey(selectedWeekIndex, c.dayIndex);
-    }
+    selectedDateTs = dayStartTs(Date.now());
+    expandedPickIdx = null;
     state.celebration = null;
     // The session is over — return to Today rather than the empty Workout tab.
     state.tab = 'today';
