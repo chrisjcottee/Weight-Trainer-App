@@ -7,11 +7,12 @@
    over without users having to close every tab.
 
    IMPORTANT: bump VERSION on every release so old caches drop. */
-const VERSION = 'v30';
+const VERSION = 'v31';
 const CACHE = `wt-${VERSION}`;
 const SHELL = [
   './',
   './index.html',
+  './manifest.json',
   './styles.css',
   './js/constants.js',
   './js/utils.js',
@@ -20,12 +21,18 @@ const SHELL = [
   './js/programs.js',
   './js/views/today.js',
   './js/views/settings.js',
+  './js/views/start.js',
   './js/views/history.js',
   './js/views/workout.js',
   './js/views/celebration.js',
+  './js/rest-timer.js',
   './js/workouts.js',
   './js/events.js',
-  './js/app.js'
+  './js/app.js',
+  './icons/apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', (event) => {

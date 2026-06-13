@@ -299,6 +299,20 @@ function onClick(e) {
     render();
     return;
   }
+  const sessToggle = e.target.closest && e.target.closest('[data-toggle-session]');
+  if (sessToggle) {
+    const key = parseInt(sessToggle.dataset.toggleSession, 10);
+    expandedSessionKey = (expandedSessionKey === key) ? null : key;
+    render();
+    return;
+  }
+  const progToggle = e.target.closest && e.target.closest('[data-toggle-progress]');
+  if (progToggle) {
+    const name = progToggle.dataset.toggleProgress; // dataset auto-decodes the esc()'d entities
+    expandedProgressName = (expandedProgressName === name) ? null : name;
+    render();
+    return;
+  }
   const editSessionBtn = e.target.closest && e.target.closest('[data-edit-session]');
   if (editSessionBtn) {
     editLoggedSession(parseInt(editSessionBtn.dataset.editSession, 10));
@@ -712,6 +726,13 @@ function handleStepperClick(btn) {
   const delta = parseInt(btn.dataset.step, 10);
   const stepper = btn.closest('.stepper');
   if (!stepper) return;
+  // Default rest-timer stepper (Library tab). Must come before the weeks
+  // branch, which assumes a setupDraft exists.
+  if (stepper.dataset.stepperTarget === 'rest-default') {
+    setRestDefault(restDefaultSeconds() + delta); // delta is ±15; setRestDefault clamps 15–600
+    render();
+    return;
+  }
   // Program-level stepper (weeks)
   if (stepper.dataset.stepperTarget === 'weeks') {
     setupDraft.weeks = clampStepper(setupDraft.weeks + delta, 1, 52);
@@ -847,8 +868,8 @@ function deleteProgramRecord(id) {
   showModal({
     title: 'Delete program?',
     body: state.activeProgramId === id
-      ? 'This removes the active program from Settings. Workout history stays saved, but Today will switch to another saved program if one exists.'
-      : 'This removes the program from Settings. Workout history stays saved.',
+      ? 'This removes the active program from your Library. Workout history stays saved, but Today will switch to another saved program if one exists.'
+      : 'This removes the program from your Library. Workout history stays saved.',
     confirmText: 'Delete',
     danger: true,
     onConfirm: doDelete

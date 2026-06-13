@@ -185,4 +185,6 @@ let selectedWeekIndex = null; // UI-only selected week on Today
 let expandedDayKey = null;    // UI-only expanded Today day, formatted as "week:day"
 let exerciseLibrarySearch = '';
 let editingExerciseLibraryId = null;
+let expandedSessionKey = null;    // History: expanded session card, keyed by session.date (stable across sort)
+let expandedProgressName = null;  // History: expanded exercise-progress row, keyed by exercise name
 let modal = null;

@@ -1,6 +1,6 @@
 Views.program = function() {
   return `
-    <h1>Settings</h1>
+    <h1>Library</h1>
 
     <h2>Programs</h2>
     <div class="card">
@@ -17,6 +17,22 @@ Views.program = function() {
     <div class="card">
       ${exerciseLibraryHtml()}
     </div>
+
+    <h2>Workout</h2>
+    <div class="card">
+      <label class="field" style="max-width:220px; margin-bottom:6px;">
+        <span class="lbl">Default rest timer</span>
+        <div class="stepper big" data-stepper-target="rest-default">
+          <button class="step-btn" data-step="-15" type="button">−</button>
+          <span class="step-val">${restTimeLabel(restDefaultSeconds())}</span>
+          <button class="step-btn" data-step="15" type="button">+</button>
+        </div>
+      </label>
+      <div class="faint">Countdown after each logged set. The ±15s buttons during a workout update this too.</div>
+    </div>
+
+    <h2>Danger zone</h2>
+    <button class="btn ghost" id="reset-program" style="color: var(--danger);">Reset Program &amp; History</button>
   `;
 };
 
