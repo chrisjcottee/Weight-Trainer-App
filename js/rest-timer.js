@@ -4,7 +4,7 @@
    view re-renders triggered by logging/finishing. */
 
 const REST_KEY = 'wt-rest-default';
-let restState = { remaining: 0, total: 0, intervalId: null, done: false };
+let restState = { remaining: 0, total: 0, endAt: 0, intervalId: null, done: false };
 
 function restDefaultSeconds() {
   const v = parseInt(localStorage.getItem(REST_KEY), 10);
@@ -20,16 +20,24 @@ function startRest(seconds) {
   const total = seconds || restDefaultSeconds();
   restState.total = total;
   restState.remaining = total;
+  restState.endAt = Date.now() + total * 1000;
   restState.done = false;
   if (restState.intervalId) clearInterval(restState.intervalId);
   restState.intervalId = setInterval(restTick, 1000);
   renderRestBar();
 }
 
+/* Remaining time is derived from an absolute end timestamp rather than
+   counted down per tick, so the timer stays accurate even when the
+   browser throttles/suspends intervals (screen locked, tab in
+   background). */
+function restRemainingSeconds() {
+  return Math.max(0, Math.ceil((restState.endAt - Date.now()) / 1000));
+}
+
 function restTick() {
-  restState.remaining -= 1;
-  if (restState.remaining <= 0) {
-    restState.remaining = 0;
+  restState.remaining = restRemainingSeconds();
+  if (restState.remaining <= 0 && !restState.done) {
     restState.done = true;
     clearInterval(restState.intervalId);
     restState.intervalId = null;
@@ -40,7 +48,8 @@ function restTick() {
 
 function adjustRest(delta) {
   if (!restBarVisible()) return;
-  restState.remaining = Math.max(0, restState.remaining + delta);
+  restState.remaining = Math.max(0, restRemainingSeconds() + delta);
+  restState.endAt = Date.now() + restState.remaining * 1000;
   restState.total = Math.max(restState.total, restState.remaining, 1);
   if (restState.remaining > 0) {
     restState.done = false;
@@ -53,9 +62,15 @@ function adjustRest(delta) {
 
 function stopRest() {
   if (restState.intervalId) clearInterval(restState.intervalId);
-  restState = { remaining: 0, total: 0, intervalId: null, done: false };
+  restState = { remaining: 0, total: 0, endAt: 0, intervalId: null, done: false };
   removeRestBar();
 }
+
+/* Re-sync the moment the app becomes visible again so the bar updates
+   instantly instead of waiting for the next (possibly throttled) tick. */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && restBarVisible() && !restState.done) restTick();
+});
 
 function restBarVisible() {
   return !!document.getElementById('rest-bar');
