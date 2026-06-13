@@ -12,7 +12,7 @@ Views.setup = function() {
     </datalist>
 
     <h1>${isNew ? 'Create Program' : 'Edit Program'}</h1>
-    <p class="subtle">${isNew ? 'Build a reusable program for your library. You can make it active now, or switch programs later from Settings.' : 'Changes update this saved program going forward.'}</p>
+    <p class="subtle">${isNew ? 'Build a reusable program for your library. You can make it active now, or switch programs later from your Library.' : 'Changes update this saved program going forward.'}</p>
 
     <div style="margin-top:20px;">
       <label class="field">

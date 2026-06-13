@@ -13,7 +13,7 @@ Views.today = function() {
   return `
     <div class="today-header">
       <div>
-        <h1>Program</h1>
+        <h1>Today</h1>
         <div class="program-sub">${esc(program.name)}</div>
       </div>
     </div>
@@ -165,7 +165,7 @@ function selectedDayDetailHtml(currentWeek) {
   } else if (!sessions.length && !isToday) {
     html += `<div class="card compact"><div class="subtle">Nothing logged on this day.</div></div>`;
   } else if (!sessions.length && isToday && programIsComplete()) {
-    html += `<div class="card compact"><div class="subtle">Program finished &mdash; start it again or pick a new one in Settings.</div></div>`;
+    html += `<div class="card compact"><div class="subtle">Program finished &mdash; start it again or pick a new one in Library.</div></div>`;
   }
 
   return html;

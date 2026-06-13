@@ -4,7 +4,17 @@
    view re-renders triggered by logging/finishing. */
 
 const REST_KEY = 'wt-rest-default';
+const REST_LIVE_KEY = 'wt-rest-live';
 let restState = { remaining: 0, total: 0, endAt: 0, intervalId: null, done: false };
+
+/* Persist the running countdown so a reload / app relaunch mid-rest can
+   resume it (see resumeRestFromStorage, called on boot). */
+function persistRestLive() {
+  try { localStorage.setItem(REST_LIVE_KEY, JSON.stringify({ endAt: restState.endAt, total: restState.total })); } catch (_) {}
+}
+function clearRestLive() {
+  try { localStorage.removeItem(REST_LIVE_KEY); } catch (_) {}
+}
 
 function restDefaultSeconds() {
   const v = parseInt(localStorage.getItem(REST_KEY), 10);
@@ -16,6 +26,10 @@ function setRestDefault(sec) {
   try { localStorage.setItem(REST_KEY, String(clamped)); } catch (_) {}
 }
 
+function restTimeLabel(sec) {
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+
 function startRest(seconds) {
   const total = seconds || restDefaultSeconds();
   restState.total = total;
@@ -24,6 +38,7 @@ function startRest(seconds) {
   restState.done = false;
   if (restState.intervalId) clearInterval(restState.intervalId);
   restState.intervalId = setInterval(restTick, 1000);
+  persistRestLive();
   renderRestBar();
 }
 
@@ -41,6 +56,7 @@ function restTick() {
     restState.done = true;
     clearInterval(restState.intervalId);
     restState.intervalId = null;
+    clearRestLive(); // a finished timer must not resurrect on reload
     buzz([60, 80, 60]);
   }
   renderRestBar();
@@ -56,6 +72,7 @@ function adjustRest(delta) {
     if (!restState.intervalId) restState.intervalId = setInterval(restTick, 1000);
     // Remember the user's adjusted length as the new default.
     setRestDefault(restState.remaining);
+    persistRestLive();
   }
   renderRestBar();
 }
@@ -63,7 +80,25 @@ function adjustRest(delta) {
 function stopRest() {
   if (restState.intervalId) clearInterval(restState.intervalId);
   restState = { remaining: 0, total: 0, endAt: 0, intervalId: null, done: false };
+  clearRestLive();
   removeRestBar();
+}
+
+/* On boot, restore a countdown that was running when the app was last
+   closed — but only if a workout is still active and the rest hasn't
+   already elapsed. Otherwise clear the stale key. */
+function resumeRestFromStorage() {
+  if (!state.active) { clearRestLive(); return; }
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(REST_LIVE_KEY)); } catch (_) {}
+  if (!saved || !saved.endAt || saved.endAt <= Date.now()) { clearRestLive(); return; }
+  restState.endAt = saved.endAt;
+  restState.total = saved.total || restDefaultSeconds();
+  restState.remaining = restRemainingSeconds();
+  restState.done = false;
+  if (restState.intervalId) clearInterval(restState.intervalId);
+  restState.intervalId = setInterval(restTick, 1000);
+  renderRestBar();
 }
 
 /* Re-sync the moment the app becomes visible again so the bar updates

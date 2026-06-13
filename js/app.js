@@ -1,6 +1,7 @@
 /* ---------- Boot ---------- */
 bindGlobalEvents();
 render();
+resumeRestFromStorage();
 
 if (!storageWorks()) {
   showModal({
