@@ -304,15 +304,13 @@
   .rail-eyebrow { color: var(--text-dim); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
   .rail-eyebrow.active { color: var(--accent); }
   .rail-eyebrow.done { color: var(--success); }
-  .skip-ex-btn { flex-shrink: 0; }
 
   /* Tap an up-next exercise to make it active */
   .ex-rail-body.selectable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .ex-rail-body.selectable:active { opacity: 0.7; }
 
   /* Just-completed exercise lingering in place before it files away */
-  .ex-rail-step.linger .ex-rail-body,
-  .ex-rail-step.linger .ex-body-face {
+  .ex-rail-step.linger .ex-rail-body {
     animation: wt-linger-in 260ms ease-out;
   }
   @keyframes wt-linger-in { from { background: var(--success-dim); } to { background: transparent; } }
@@ -488,32 +486,41 @@
     display: flex; align-items: center; justify-content: center;
     border: 0; border-radius: 11px; background: var(--danger);
     color: white; cursor: pointer; z-index: 0;
+    /* Hidden until the row is actually being swiped, so it can't peek through
+       behind the face during re-render / reorder animations. */
+    opacity: 0;
   }
+  .set-row.swipe-wrap.swiping .set-delete,
+  .set-row.swipe-wrap.revealed .set-delete { opacity: 1; }
 
-  /* Swipe-to-reveal delete on whole exercise rows — removes the exercise
-     from the workout and from the program going forward. The body is the
-     swipe container, so the sliding content clips at its own edge and never
-     crosses into the rail-circle column. */
-  .ex-rail-body.swipe-wrap {
-    position: relative; touch-action: pan-y;
-    clip-path: inset(-6px 0 -6px 0);
+  /* Exercise overflow (3-dot) menu on the active exercise */
+  .ex-menu-wrap { position: relative; }
+  .ex-menu-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 28px; padding: 0;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--card); color: var(--text-dim);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
-  .ex-rail-body.swipe-wrap > .ex-body-face {
-    position: relative; z-index: 1;
-    background: var(--card);
-    transition: transform 0.22s cubic-bezier(.2,.7,.2,1);
-    will-change: transform;
+  .ex-menu-btn:active { background: var(--accent-dim); color: var(--accent); }
+  .ex-menu {
+    display: none;
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
+    min-width: 176px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 6px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
   }
-  .ex-rail-body.swipe-wrap.revealed > .ex-body-face { transform: translateX(-72px); }
-  .ex-delete {
-    /* bottom matches the body's padding-bottom so the button spans exactly
-       the face-covered area */
-    position: absolute; top: 0; right: 0; bottom: 18px; width: 72px;
-    display: flex; align-items: center; justify-content: center;
-    border: 0; border-radius: 11px; background: var(--danger);
-    color: white; cursor: pointer; z-index: 0;
+  .ex-menu-wrap.open .ex-menu { display: block; }
+  .ex-menu-item {
+    display: block; width: 100%; text-align: left;
+    padding: 10px 12px; border: 0; border-radius: 8px;
+    background: transparent; color: var(--text);
+    font-family: inherit; font-size: 15px; font-weight: 600;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
-  .ex-rail-step:last-child .ex-rail-body.swipe-wrap > .ex-delete { bottom: 0; }
+  .ex-menu-item:active { background: var(--bg); }
+  .ex-menu-item.danger { color: var(--danger); }
 
   /* Drag-to-reorder upcoming exercises via the dots handle */
   .drag-handle {

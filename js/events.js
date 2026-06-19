@@ -112,6 +112,15 @@ function closeAllReveals(except) {
   });
 }
 
+/* ---------- Exercise overflow (3-dot) menu ---------- */
+function closeExMenus() {
+  document.querySelectorAll('.ex-menu-wrap.open').forEach(w => {
+    w.classList.remove('open');
+    const b = w.querySelector('.ex-menu-btn');
+    if (b) b.setAttribute('aria-expanded', 'false');
+  });
+}
+
 function onTouchStart(e) {
   // A fresh touch is deliberate intent — never suppress its click.
   suppressNextClick = false;
@@ -121,7 +130,7 @@ function onTouchStart(e) {
   const wrap = e.target.closest && e.target.closest('.swipe-wrap');
   // Don't begin a swipe from a trash button or from a text input (so the
   // active row's weight field keeps its native touch behaviour).
-  if (!wrap || (e.target.closest && e.target.closest('.set-delete, .ex-delete, .drag-handle, input'))) { swipe = null; return; }
+  if (!wrap || (e.target.closest && e.target.closest('.set-delete, .drag-handle, input'))) { swipe = null; return; }
   const face = wrap.querySelector(':scope > .swipe-face');
   if (!face) { swipe = null; return; }
   const t = e.touches[0];
@@ -145,6 +154,7 @@ function onTouchMove(e) {
   if (swipe.vertical) { swipe = null; return; } // it's a scroll — let it through
   if (!swipe.horizontal) return;
   e.preventDefault(); // claim the gesture so the page doesn't scroll
+  swipe.wrap.classList.add('swiping'); // reveal the trash only while dragging
   let tx = Math.max(-SWIPE_REVEAL, Math.min(0, swipe.base + dx));
   swipe.curr = tx;
   swipe.face.style.transition = 'none';
@@ -155,6 +165,7 @@ function onTouchEnd() {
   if (!swipe) return;
   const s = swipe;
   swipe = null;
+  s.wrap.classList.remove('swiping');
   if (!s.horizontal) return;
   // Hand the snap back to the CSS class transition.
   s.face.style.transition = '';
@@ -180,6 +191,13 @@ function onClick(e) {
   // The reorder handle is drag-only — a stray tap on it must not select the row.
   if (e.target.closest && e.target.closest('.drag-handle')) return;
 
+  // A tap outside an open exercise menu dismisses it, then proceeds normally.
+  // Taps inside the menu (toggle button or items) are handled further down.
+  if (document.querySelector('.ex-menu-wrap.open') &&
+      !(e.target.closest && e.target.closest('.ex-menu-wrap'))) {
+    closeExMenus();
+  }
+
   // Tap the revealed trash button to delete that set.
   const delBtn = e.target.closest && e.target.closest('[data-act="delete-set"]');
   if (delBtn) {
@@ -187,10 +205,11 @@ function onClick(e) {
     removeSet(exIdx, si);
     return;
   }
-  // Tap the revealed trash button on an exercise to remove it from the
+  // "Delete exercise" in the 3-dot menu — remove the whole exercise from the
   // workout and from the program going forward.
   const exDelBtn = e.target.closest && e.target.closest('[data-act="delete-ex"]');
   if (exDelBtn) {
+    closeExMenus();
     closeAllReveals(null);
     removeExerciseFromWorkout(+exDelBtn.dataset.exIdx);
     return;
@@ -471,8 +490,18 @@ function onClick(e) {
     endWorkoutFlow();
     return;
   }
-  if (e.target.dataset.act === 'skip-ex') {
-    const exIdx = parseInt(e.target.dataset.exIdx, 10);
+  // 3-dot exercise menu — toggle open/closed.
+  const exMenuBtn = e.target.closest && e.target.closest('[data-act="ex-menu"]');
+  if (exMenuBtn) {
+    const wrap = exMenuBtn.closest('.ex-menu-wrap');
+    const open = wrap.classList.toggle('open');
+    exMenuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    return;
+  }
+  const skipExBtn = e.target.closest && e.target.closest('[data-act="skip-ex"]');
+  if (skipExBtn) {
+    closeExMenus();
+    const exIdx = parseInt(skipExBtn.dataset.exIdx, 10);
     if (withUnloggedSetGuard(() => skipExercise(exIdx), 'Skip without set')) return;
     skipExercise(exIdx);
     return;
@@ -633,6 +662,10 @@ function onInput(e) {
 }
 
 function onKeydown(e) {
+  if (e.key === 'Escape' && document.querySelector('.ex-menu-wrap.open')) {
+    closeExMenus();
+    return;
+  }
   if (e.key === 'Enter') {
     if (e.target.id === 'new-exercise-name') {
       e.preventDefault();

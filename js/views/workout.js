@@ -80,9 +80,7 @@ function activeStepHtml(ex, i) {
   return `
     <div class="ex-rail-step active" data-ex-idx="${i}">
       <div class="ex-rail-node"><span class="ex-rail-circle"></span></div>
-      <div class="ex-rail-body swipe-wrap">
-        ${exDeleteBtnHtml(i)}
-        <div class="ex-body-face swipe-face">
+      <div class="ex-rail-body">
         <div class="dense-line">
           <div style="min-width:0;">
             <div class="rail-eyebrow active">Active</div>
@@ -90,7 +88,13 @@ function activeStepHtml(ex, i) {
           </div>
           <div class="row" style="gap:6px;">
             <span class="badge">${ex.sets.length}/${exerciseSlots(ex)}</span>
-            <button class="btn ghost small skip-ex-btn" data-act="skip-ex" data-ex-idx="${i}">${skipLabel}</button>
+            <div class="ex-menu-wrap">
+              <button type="button" class="ex-menu-btn" data-act="ex-menu" aria-label="Exercise options" aria-haspopup="true" aria-expanded="false">${DOTS_SVG}</button>
+              <div class="ex-menu" role="menu">
+                <button type="button" class="ex-menu-item danger" data-act="delete-ex" data-ex-idx="${i}" role="menuitem">Delete exercise</button>
+                <button type="button" class="ex-menu-item" data-act="skip-ex" data-ex-idx="${i}" role="menuitem">${skipLabel}</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="ex-rail-meta" style="margin:2px 0 0;">Target ${ex.targetSets} × ${ex.targetReps}</div>
@@ -98,7 +102,6 @@ function activeStepHtml(ex, i) {
           ${Array.from({length: exerciseSlots(ex)}, (_, si) => setRowHtml(ex, i, si, true)).join('')}
         </div>
         ${addSetBtnHtml(i)}
-        </div>
       </div>
     </div>
   `;
@@ -125,10 +128,6 @@ function addExerciseRowHtml() {
   `;
 }
 
-function exDeleteBtnHtml(exIdx) {
-  return `<button type="button" class="ex-delete" data-act="delete-ex" data-ex-idx="${exIdx}" aria-label="Remove exercise" tabindex="-1">${TRASH_SVG}</button>`;
-}
-
 const DRAG_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>';
 
 function dragHandleHtml() {
@@ -148,15 +147,12 @@ function upNextStepHtml(ex, i) {
   return `
     <div class="ex-rail-step upcoming dense-collapsed" data-ex-idx="${i}">
       <div class="ex-rail-node"><span class="ex-rail-circle"></span></div>
-      <div class="ex-rail-body selectable swipe-wrap" data-select-active="${i}">
-        ${exDeleteBtnHtml(i)}
-        <div class="ex-body-face swipe-face">
-          <div class="dense-line">
-            <div class="ex-rail-name">${name}</div>
-            <span class="row" style="gap:2px;">${badge}${dragHandleHtml()}</span>
-          </div>
-          <div class="dense-summary">${summary}</div>
+      <div class="ex-rail-body selectable" data-select-active="${i}">
+        <div class="dense-line">
+          <div class="ex-rail-name">${name}</div>
+          <span class="row" style="gap:2px;">${badge}${dragHandleHtml()}</span>
         </div>
+        <div class="dense-summary">${summary}</div>
       </div>
     </div>
   `;
@@ -169,9 +165,7 @@ function lingerStepHtml(ex, i) {
   return `
     <div class="ex-rail-step completed expanded linger" data-ex-idx="${i}">
       <div class="ex-rail-node"><span class="ex-rail-circle">✓</span></div>
-      <div class="ex-rail-body swipe-wrap">
-        ${exDeleteBtnHtml(i)}
-        <div class="ex-body-face swipe-face">
+      <div class="ex-rail-body">
         <div class="dense-line">
           <div style="min-width:0;">
             <div class="rail-eyebrow done">Completed</div>
@@ -184,7 +178,6 @@ function lingerStepHtml(ex, i) {
           ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
         </div>
         ${addSetBtnHtml(i)}
-        </div>
       </div>
     </div>
   `;
@@ -228,11 +221,10 @@ function completedRowHtml(ex, i) {
       : `<span class="badge success">${ex.sets.length}/${exerciseSlots(ex)} ✓</span>`;
   const editable = ex.sets.length > 0;
   const expanded = editable && i === expandedExIdx;
-  // An already-removed exercise can't be swiped away again.
-  const wrapOpen = removed
-    ? (extra) => `<div class="ex-rail-body${extra.cls || ''}"${extra.attrs || ''}>`
-    : (extra) => `<div class="ex-rail-body swipe-wrap${extra.cls || ''}"${extra.attrs || ''}>${exDeleteBtnHtml(i)}<div class="ex-body-face swipe-face">`;
-  const wrapClose = removed ? '</div>' : '</div></div>';
+  // Completed exercises aren't deletable here — whole-exercise delete lives in
+  // the active exercise's 3-dot menu. Set rows inside still swipe to delete.
+  const wrapOpen = (extra) => `<div class="ex-rail-body${extra.cls || ''}"${extra.attrs || ''}>`;
+  const wrapClose = '</div>';
 
   if (expanded) {
     return `
@@ -274,6 +266,7 @@ function completedRowHtml(ex, i) {
 }
 
 const TRASH_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg>';
+const DOTS_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
 
 function setDeleteBtnHtml(exIdx, si) {
   return `<button type="button" class="set-delete" data-act="delete-set" data-del-set="${exIdx},${si}" aria-label="Delete set" tabindex="-1">${TRASH_SVG}</button>`;
