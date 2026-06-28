@@ -19,38 +19,10 @@ Views.today = function() {
     </div>
 
     ${programIsComplete() ? programCompleteBannerHtml(program) : ''}
-    ${weekStepperHtml(currentWeek)}
     ${calendarCardHtml(currentWeek)}
     ${selectedDayDetailHtml(currentWeek)}
   `;
 };
-
-/* Week stepper — one circle per program week; a week is checked once all of
-   its required workouts were completed inside that calendar week. */
-function weekStepperHtml(currentWeek) {
-  const totalWeeks = state.program.weeks;
-  const requiredPerWeek = state.program.template.length;
-  const complete = programIsComplete();
-  return `
-    <div class="week-stepper" aria-label="Program weeks">
-      ${Array.from({length: totalWeeks}, (_, i) => {
-        const done = completedDayIdxsInCalendarWeek(i).length >= requiredPerWeek;
-        const active = !complete && i === currentWeek;
-        const classes = [
-          done ? 'completed' : '',
-          active ? 'active' : '',
-          (!done && !active) ? 'upcoming' : ''
-        ].filter(Boolean).join(' ');
-        return `
-          <button class="week-step ${classes}" data-select-week="${i}" aria-label="Week ${i + 1}${done ? ', completed' : active ? ', current' : ''}">
-            <span class="week-step-circle">${done ? '&#10003;' : i + 1}</span>
-            <span class="week-step-label">Week ${i + 1}</span>
-          </button>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
 
 /* Calendar card — collapsed shows the current week's row; expanded shows the
    whole program in the same format. */

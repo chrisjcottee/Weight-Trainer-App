@@ -300,12 +300,6 @@ function onClick(e) {
   }
 
   // Program tab (calendar)
-  const weekEl = e.target.closest && e.target.closest('[data-select-week]');
-  if (weekEl) {
-    calendarExpanded = true;
-    render();
-    return;
-  }
   const dayCell = e.target.closest && e.target.closest('[data-select-date]');
   if (dayCell) {
     selectedDateTs = parseInt(dayCell.dataset.selectDate, 10);
