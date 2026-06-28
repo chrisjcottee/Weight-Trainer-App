@@ -1,7 +1,7 @@
 /* ---------- Workout actions ---------- */
 function startWorkout(dayIndex) {
   if (programIsComplete()) return;
-  if (dayIsDoneThisWeek(dayIndex)) return;
+  if (dayIsDoneToday(dayIndex)) return;
   if (state.active) return;
   const day = state.program.template[dayIndex];
   if (!day) return;
@@ -522,24 +522,15 @@ function endWorkoutFlow() {
     return;
   }
 
-  // Partial — give the choice between Save & End and Discard
+  // Some (not all) exercises resolved — finishing logs just those and marks the
+  // workout complete for today. The rest are simply dropped.
   showModal({
-    title: 'Save your progress?',
-    body: 'You haven\'t resolved every exercise. Save this as a partial workout, or discard it?',
-    confirmText: 'Save Partial',
+    title: 'Finish workout?',
+    body: 'Only the exercises you\'ve completed will be logged. This workout will be marked complete for today.',
+    confirmText: 'Finish',
     onConfirm: () => {
-      finishWorkout({ partial: true });
       closeModal();
-    },
-    extraAction: {
-      label: 'Discard workout',
-      danger: true,
-      onClick: () => {
-        state.active = null;
-        editingSet = null;
-        closeModal();
-        setState({ tab: 'today' });
-      }
+      finishWorkout();
     }
   });
 }
@@ -604,7 +595,7 @@ function logCurrentSet(row) {
   render();
 }
 
-function finishWorkout(opts = {}) {
+function finishWorkout() {
   const a = state.active;
   if (!a) return;
   // Editing a previously-logged session: replace it in place. No XP, streak
@@ -646,9 +637,10 @@ function finishWorkout(opts = {}) {
   };
   state.sessions.push(session);
 
-  // Determine if the day has been resolved: every exercise logged or explicitly skipped.
-  const fullyComplete = !opts.partial &&
-    a.exercises.every(exerciseIsResolved);
+  // Whether every exercise was resolved (logged or explicitly skipped). Drives
+  // the perfect-day XP bonus and the "Partial" badge — but a workout counts as
+  // done for the day either way, logging only the completed exercises.
+  const fullyComplete = a.exercises.every(exerciseIsResolved);
   session.fullyComplete = fullyComplete;
 
   let xpEarned = 0;
@@ -664,45 +656,45 @@ function finishWorkout(opts = {}) {
     if (!e.skipped && exerciseIsComplete(e)) xpEarned += 25;
   });
 
-  if (fullyComplete) {
-    if (loggedSetCount > 0) xpEarned += 100;
+  // Logging the workout marks its day done — for today and for the week —
+  // whether or not every exercise was finished.
+  if (!state.currentRun.completedDayIndices.includes(a.dayIndex)) {
+    state.currentRun.completedDayIndices.push(a.dayIndex);
+  }
 
-    // Streak (per workout day)
+  // Week complete? Weeks are calendar weeks now — the week number advances
+  // with the date (syncCalendarRun), never here.
+  if (state.currentRun.completedDayIndices.length >= state.program.template.length) {
+    weekComplete = true;
+    xpEarned += 500;
+
+    // Final week done = program complete.
+    if (currentWeekIndex() >= state.program.weeks - 1) {
+      programComplete = true;
+      xpEarned += 2500;
+    }
+  }
+
+  // Streak + perfect-day bonus reward actually putting in work.
+  if (loggedSetCount > 0) {
     const today = Date.now();
-    if (loggedSetCount > 0) {
-      const last = state.stats.lastDayCompleteDate;
-      if (last) {
-        const gap = daysBetween(last, today);
-        if (gap === 0) {
-          // same day, no change
-        } else if (gap <= 2) {
-          state.stats.streak += 1;
-        } else {
-          state.stats.streak = 1;
-        }
+    const last = state.stats.lastDayCompleteDate;
+    if (last) {
+      const gap = daysBetween(last, today);
+      if (gap === 0) {
+        // same day, no change
+      } else if (gap <= 2) {
+        state.stats.streak += 1;
       } else {
         state.stats.streak = 1;
       }
-      state.stats.lastDayCompleteDate = today;
+    } else {
+      state.stats.streak = 1;
     }
+    state.stats.lastDayCompleteDate = today;
 
-    // Mark this day done this week (if not already)
-    if (!state.currentRun.completedDayIndices.includes(a.dayIndex)) {
-      state.currentRun.completedDayIndices.push(a.dayIndex);
-    }
-
-    // Week complete? Weeks are calendar weeks now — the week number advances
-    // with the date (syncCalendarRun), never here.
-    if (state.currentRun.completedDayIndices.length >= state.program.template.length) {
-      weekComplete = true;
-      xpEarned += 500;
-
-      // Final week fully done = program complete.
-      if (currentWeekIndex() >= state.program.weeks - 1) {
-        programComplete = true;
-        xpEarned += 2500;
-      }
-    }
+    // Perfect-day bonus only when every exercise was resolved.
+    if (fullyComplete) xpEarned += 100;
   }
 
   state.stats.xp += xpEarned;

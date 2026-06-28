@@ -57,7 +57,7 @@ Views.workout = function() {
 
 function workoutEmptyHtml() {
   const complete = programIsComplete();
-  const next = complete ? -1 : nextDayIndex();
+  const next = complete ? -1 : nextAvailableDayIndex();
   const day = (next >= 0 && state.program) ? state.program.template[next] : null;
   const upNext = day
     ? `<div class="faint" style="margin-top:8px;">Up next: ${esc(day.name || 'Workout ' + (next + 1))}</div>`

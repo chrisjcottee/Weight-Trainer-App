@@ -289,18 +289,46 @@ function sessionsOnDate(ts) {
   return activeProgramSessions().filter(s => sameLocalDay(s.date, ts));
 }
 
-// Template-day indices completed (fully) in a calendar week, from sessions.
+// Template-day indices logged (any session) in a calendar week. A workout
+// counts as done for the week as soon as it's logged, even if some exercises
+// were left unfinished — only the completed exercises get saved.
 function completedDayIdxsInCalendarWeek(weekIndex) {
   if (!state.program) return [];
   const start = weekStartTs(weekIndex);
   const end = start + WEEK_MS;
   const idxs = new Set();
   activeProgramSessions().forEach(s => {
-    if (s.date >= start && s.date < end && s.dayIndex != null && sessionIsComplete(s)) {
+    if (s.date >= start && s.date < end && s.dayIndex != null) {
       idxs.add(s.dayIndex);
     }
   });
   return Array.from(idxs).filter(i => i < state.program.template.length);
+}
+
+// Template-day indices that already have a logged session dated today. A
+// workout locks for the rest of the calendar day once logged, and frees up
+// again the next day — so each workout can be done once per day.
+function completedDayIdxsToday() {
+  if (!state.program) return [];
+  const idxs = new Set();
+  activeProgramSessions().forEach(s => {
+    if (s.dayIndex != null && sameLocalDay(s.date, Date.now())) idxs.add(s.dayIndex);
+  });
+  return Array.from(idxs).filter(i => i < state.program.template.length);
+}
+
+function dayIsDoneToday(dayIndex) {
+  return completedDayIdxsToday().includes(dayIndex);
+}
+
+// First template day not yet logged today — the next workout you can start.
+function nextAvailableDayIndex() {
+  if (!state.program || programIsComplete()) return -1;
+  const done = completedDayIdxsToday();
+  for (let i = 0; i < state.program.template.length; i++) {
+    if (!done.includes(i)) return i;
+  }
+  return -1;
 }
 
 // Keep currentRun in line with the calendar. weekIndex may equal program.weeks
