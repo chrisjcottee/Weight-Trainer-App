@@ -150,16 +150,15 @@ function selectedDayDetailHtml(currentWeek) {
           </div>
         </div>`;
     } else {
+      const doneToday = completedDayIdxsToday();
       const due = state.program.template
         .map((d, i) => ({ d, i }))
-        .filter(({ i }) => !state.currentRun.completedDayIndices.includes(i));
+        .filter(({ i }) => !doneToday.includes(i));
       if (due.length) {
         due.forEach(({ d, i }) => { html += pickCardHtml(d, i); });
         html += `<div class="faint cal-hint">Any order &mdash; finishing a workout logs it to today. Tap a card to see its exercises.</div>`;
-      } else if (!sessions.length) {
-        html += weekCompleteCardHtml();
       } else {
-        html += weekCompleteCardHtml();
+        html += allDoneTodayCardHtml();
       }
     }
   } else if (!sessions.length && !isToday) {
@@ -171,11 +170,11 @@ function selectedDayDetailHtml(currentWeek) {
   return html;
 }
 
-function weekCompleteCardHtml() {
+function allDoneTodayCardHtml() {
   return `
     <div class="card">
-      <div class="program-name">Week complete &#10003;</div>
-      <div class="program-meta">All ${state.program.template.length} workouts logged this week. Next week unlocks Monday.</div>
+      <div class="program-name">All done for today &#10003;</div>
+      <div class="program-meta">You've logged every workout today. They unlock again tomorrow.</div>
     </div>`;
 }
 
