@@ -326,6 +326,11 @@ function onClick(e) {
     startWorkout(parseInt(e.target.dataset.startDay, 10));
     return;
   }
+  // "Log" on a past calendar day — start a backfill dated to that day.
+  if (e.target.dataset.logDay != null) {
+    startWorkout(parseInt(e.target.dataset.logDay, 10), parseInt(e.target.dataset.logDate, 10));
+    return;
+  }
   const pickEl = e.target.closest && e.target.closest('[data-toggle-pick]');
   if (pickEl) {
     const i = parseInt(pickEl.dataset.togglePick, 10);
