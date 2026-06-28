@@ -1,8 +1,13 @@
 /* ---------- Workout actions ---------- */
-function startWorkout(dayIndex) {
-  if (programIsComplete()) return;
-  if (dayIsDoneToday(dayIndex)) return;
+// logDate (a timestamp on a past calendar day) starts a backfill: the finished
+// session is dated to that day so missed workouts can be added to history.
+function startWorkout(dayIndex, logDate) {
   if (state.active) return;
+  const backfill = logDate != null;
+  if (!backfill) {
+    if (programIsComplete()) return;
+    if (dayIsDoneToday(dayIndex)) return;
+  }
   const day = state.program.template[dayIndex];
   if (!day) return;
   editingSet = null;
@@ -10,15 +15,21 @@ function startWorkout(dayIndex) {
   lingeringExIdx = null;
   completedCollapsed = true;
   addingExercise = false;
-  selectedWeekIndex = state.currentRun.weekIndex || 0;
-  expandedDayKey = dayKey(selectedWeekIndex, dayIndex);
+  // Stamp backfills at midday so they sort sensibly within the chosen day.
+  const ld = backfill ? dayStartTs(logDate) + 12 * 3600000 : null;
+  const weekIndex = backfill
+    ? Math.max(0, calendarWeekOfTs(ld))
+    : (state.currentRun.weekIndex || 0);
+  selectedWeekIndex = weekIndex;
+  expandedDayKey = dayKey(weekIndex, dayIndex);
   state.active = {
     programId: state.activeProgramId || null,
     programName: state.program.name,
-    weekIndex: state.currentRun.weekIndex,
+    weekIndex,
     dayIndex,
     dayName: day.name || ('Workout ' + (dayIndex + 1)),
-    startedAt: Date.now(),
+    startedAt: ld || Date.now(),
+    logDate: ld,
     activeExIdx: 0,
     exercises: day.exercises.map(e => ({
       name: e.name,
@@ -526,7 +537,7 @@ function endWorkoutFlow() {
   // workout complete for today. The rest are simply dropped.
   showModal({
     title: 'Finish workout?',
-    body: 'Only the exercises you\'ve completed will be logged. This workout will be marked complete for today.',
+    body: 'Only the exercises you\'ve completed will be logged; the rest are dropped.',
     confirmText: 'Finish',
     onConfirm: () => {
       closeModal();
@@ -602,6 +613,12 @@ function finishWorkout() {
   // or celebration — the original workout already earned those.
   if (a.editOfDate != null) {
     finishSessionEdit(a);
+    return;
+  }
+  // Backfilled (past-day) workout: save it to history on its own date, with no
+  // streak / XP / celebration — it's a history entry, not today's session.
+  if (a.logDate != null) {
+    finishBackfillWorkout(a);
     return;
   }
   persistAddedExerciseTargets(a);
@@ -806,6 +823,49 @@ function finishSessionEdit(a) {
   lingeringExIdx = null;
   completedCollapsed = true;
   addingExercise = false;
+  state.tab = 'today';
+  save();
+  render();
+}
+
+// Save a backfilled (past-day) workout straight to history. No XP, streak or
+// celebration — it just records what was done on that day. Only the completed
+// exercises are kept; if nothing was logged the workout is dropped.
+function finishBackfillWorkout(a) {
+  persistAddedExerciseTargets(a);
+  const sessionExercises = a.exercises.filter(e => e.sets.length > 0 || e.skipped);
+  if (sessionExercises.length) {
+    state.sessions.push({
+      date: a.logDate,
+      programId: a.programId || state.activeProgramId || null,
+      programName: a.programName || (state.program && state.program.name) || '',
+      weekIndex: a.weekIndex,
+      dayIndex: a.dayIndex,
+      dayName: a.dayName,
+      durationMs: 0,
+      fullyComplete: a.exercises.every(exerciseIsResolved),
+      exercises: sessionExercises.map(e => ({
+        name: e.name,
+        sets: e.sets,
+        skipped: !!e.skipped,
+        skippedAt: e.skippedAt || null,
+        removed: !!e.removed,
+        targetSets: e.targetSets,
+        targetReps: e.targetReps
+      }))
+    });
+    // Keep the log ordered by date so the calendar/history stays consistent.
+    state.sessions.sort((x, y) => x.date - y.date);
+    selectedDateTs = dayStartTs(a.logDate);
+  }
+  syncCalendarRun();
+  state.active = null;
+  editingSet = null;
+  expandedExIdx = null;
+  lingeringExIdx = null;
+  completedCollapsed = true;
+  addingExercise = false;
+  state.celebration = null;
   state.tab = 'today';
   save();
   render();

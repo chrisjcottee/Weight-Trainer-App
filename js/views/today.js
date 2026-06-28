@@ -133,12 +133,29 @@ function selectedDayDetailHtml(currentWeek) {
         html += allDoneTodayCardHtml();
       }
     }
-  } else if (!sessions.length && !isToday) {
-    html += `<div class="card compact"><div class="subtle">Nothing logged on this day.</div></div>`;
+  } else if (!isToday) {
+    html += pastDayLogHtml(ts);
   } else if (!sessions.length && isToday && programIsComplete()) {
     html += `<div class="card compact"><div class="subtle">Program finished &mdash; start it again or pick a new one in Library.</div></div>`;
   }
 
+  return html;
+}
+
+/* A past calendar day — let the user backfill a workout they did but never
+   logged, to keep their history complete. Offers the workout types not already
+   logged on that day. */
+function pastDayLogHtml(ts) {
+  if (state.active) {
+    return `<div class="card compact"><div class="subtle">Finish your active workout before logging a past day.</div></div>`;
+  }
+  const loggedIdxs = sessionsOnDate(ts).map(s => s.dayIndex);
+  const due = state.program.template
+    .map((d, i) => ({ d, i }))
+    .filter(({ i }) => !loggedIdxs.includes(i));
+  if (!due.length) return '';
+  let html = due.map(({ d, i }) => pickCardHtml(d, i, ts)).join('');
+  html += `<div class="faint cal-hint">Missed one? Add a workout you did on this day to your history.</div>`;
   return html;
 }
 
@@ -151,10 +168,13 @@ function allDoneTodayCardHtml() {
 }
 
 /* A workout still due this week — tap to preview exercises, Start to begin. */
-function pickCardHtml(day, i) {
+function pickCardHtml(day, i, forDate) {
   const expanded = expandedPickIdx === i;
   const exCount = day.exercises.length;
   const setTotal = day.exercises.reduce((n, e) => n + e.sets, 0);
+  const actionBtn = forDate != null
+    ? `<button class="btn small" data-log-day="${i}" data-log-date="${forDate}">Log</button>`
+    : `<button class="btn small" data-start-day="${i}">Start</button>`;
   return `
     <div class="card pick-card" data-toggle-pick="${i}">
       <div class="pick-head">
@@ -163,7 +183,7 @@ function pickCardHtml(day, i) {
           <div class="pick-name">${esc(day.name || 'Workout ' + (i + 1))}</div>
           <div class="pick-meta">${exCount} exercise${exCount === 1 ? '' : 's'} &middot; ${setTotal} sets</div>
         </div>
-        <button class="btn small" data-start-day="${i}">Start</button>
+        ${actionBtn}
         <span class="pick-chev">${expanded ? '&#9662;' : '&#9656;'}</span>
       </div>
       ${expanded ? `

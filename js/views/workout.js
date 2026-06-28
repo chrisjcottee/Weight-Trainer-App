@@ -40,8 +40,9 @@ Views.workout = function() {
     </datalist>
     <div class="workout-top">
       <div style="margin-bottom:13px;">
-        <div class="section-label" style="margin-bottom:3px;">Week ${a.weekIndex + 1}</div>
+        <div class="section-label" style="margin-bottom:3px;">${a.logDate ? 'Backdated log' : 'Week ' + (a.weekIndex + 1)}</div>
         <h1 class="workout-day-title">${esc(a.dayName)}</h1>
+        ${a.logDate ? `<div class="faint" style="margin-top:3px;">Logging for ${esc(new Date(a.logDate).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }))}</div>` : ''}
       </div>
       <div class="dots">${dots}</div>
     </div>
