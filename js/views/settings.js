@@ -15,6 +15,19 @@ Views.program = function() {
 
     ${collapsibleSectionHtml('library', 'Exercise Library', settingsLibraryOpen, exerciseLibraryHtml())}
 
+    <h2>Workout</h2>
+    <div class="card">
+      <label class="field" style="max-width:220px; margin-bottom:6px;">
+        <span class="lbl">Default rest timer</span>
+        <div class="stepper big" data-stepper-target="rest-default">
+          <button class="step-btn" data-step="-15" type="button">−</button>
+          <span class="step-val">${restTimeLabel(restDefaultSeconds())}</span>
+          <button class="step-btn" data-step="15" type="button">+</button>
+        </div>
+      </label>
+      <div class="faint">Countdown after each logged set. The ±15s buttons during a workout update this too.</div>
+    </div>
+
     <h2>Data</h2>
     <div class="card">
       <button class="btn ghost" id="reset-program" style="color: var(--danger);">Reset Program &amp; History</button>

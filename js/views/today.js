@@ -16,6 +16,7 @@ Views.today = function() {
         <h1>Today</h1>
         <div class="program-sub">${esc(program.name)}</div>
       </div>
+      <button class="btn secondary small progress-link" data-tab="progress">Progress &#8250;</button>
     </div>
 
     ${programIsComplete() ? programCompleteBannerHtml(program) : ''}
@@ -124,7 +125,7 @@ function selectedDayDetailHtml(currentWeek) {
   } else if (!isToday) {
     html += pastDayLogHtml(ts);
   } else if (!sessions.length && isToday && programIsComplete()) {
-    html += `<div class="card compact"><div class="subtle">Program finished &mdash; start it again or pick a new one in Settings.</div></div>`;
+    html += `<div class="card compact"><div class="subtle">Program finished &mdash; start it again or pick a new one in Library.</div></div>`;
   }
 
   return html;

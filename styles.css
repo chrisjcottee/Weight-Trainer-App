@@ -17,6 +17,16 @@
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
     --tab-h: 64px;
+    /* Typographic scale + layout tokens (keeps titles/padding consistent
+       across tabs and guarantees a 44px minimum touch target). */
+    --fs-title: 30px;
+    --fs-h2: 20px;
+    --fs-h3: 17px;
+    --fs-body: 15px;
+    --fs-meta: 13px;
+    --fs-caption: 11px;
+    --card-pad: 16px;
+    --tap-min: 44px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; }
@@ -41,9 +51,9 @@
   }
 
   /* Typography */
-  h1 { font-size: 28px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; }
-  h2 { font-size: 20px; font-weight: 600; margin: 24px 0 12px; letter-spacing: -0.01em; }
-  h3 { font-size: 17px; font-weight: 600; margin: 0; }
+  h1 { font-size: var(--fs-title); font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; }
+  h2 { font-size: var(--fs-h2); font-weight: 600; margin: 24px 0 12px; letter-spacing: -0.01em; }
+  h3 { font-size: var(--fs-h3); font-weight: 600; margin: 0; }
   .subtle { color: var(--text-dim); font-size: 14px; }
   .faint { color: var(--text-faint); font-size: 13px; }
   .mono { font-variant-numeric: tabular-nums; }
@@ -52,7 +62,7 @@
   .card {
     background: var(--card);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: var(--card-pad);
     margin-bottom: 12px;
     box-shadow: var(--shadow);
   }
@@ -93,6 +103,20 @@
   }
   .btn-group { display: flex; gap: 8px; }
   .btn-group .btn { flex: 1; }
+
+  /* Touch targets — expand the hit area to Apple's 44px minimum without
+     inflating the visual size. The ::after overlay is transparent and,
+     because it has no pointer-events override, clicks still resolve to the
+     parent button (so events.js target checks keep working). */
+  .btn.icon, .step-btn, .drag-handle, .rest-btn, .last-chip,
+  .ex-editor .remove { position: relative; }
+  .btn.icon::after { content: ''; position: absolute; inset: -4px; }
+  .step-btn::after { content: ''; position: absolute; inset: -4px; }
+  .reps-stepper .step-btn::after { content: ''; position: absolute; inset: -5px; }
+  .drag-handle::after { content: ''; position: absolute; inset: -7px; }
+  .rest-btn::after, .last-chip::after { content: ''; position: absolute; inset: -6px; }
+  .ex-editor .remove::after { content: ''; position: absolute; inset: -4px; }
+  .week-step, .expand-btn { min-height: var(--tap-min); }
 
   /* Inputs */
   input[type="text"], input[type="number"], input[type="tel"] {
@@ -147,6 +171,7 @@
     font-family: inherit;
   }
   .tab .ico { font-size: 22px; line-height: 1; position: relative; }
+  .tab .ico svg { width: 24px; height: 24px; display: block; }
   .tab.active { color: var(--accent); }
   /* Pulsing dot on the Workout tab while a session is in progress */
   .tab.has-session .ico::after {
@@ -254,7 +279,7 @@
 
   /* Bold workout day title with WEEK eyebrow */
   .workout-day-title {
-    font-size: 30px; font-weight: 700; line-height: 1.05;
+    font-size: var(--fs-title); font-weight: 700; line-height: 1.05;
     letter-spacing: -0.02em; margin: 0; color: var(--text);
   }
 
@@ -754,7 +779,7 @@
     margin-bottom: 20px;
     animation: pop 0.4s ease-out;
   }
-  .celebrate h1 { font-size: 32px; margin-bottom: 8px; }
+  .celebrate h1 { font-size: var(--fs-title); margin-bottom: 8px; }
   .celebrate .sub { color: var(--text-dim); margin-bottom: 24px; }
 
   /* Week progression timeline on celebration */
@@ -854,34 +879,57 @@
   }
 
   /* History */
-  .session-item {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    margin-bottom: 10px;
-    box-shadow: var(--shadow);
+  /* History — session cards (custom card/chevron expand, no native details) */
+  .card.session-card { padding: 0; }
+  .session-toggle {
+    width: 100%; display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; min-height: var(--tap-min);
+    background: transparent; border: 0; font-family: inherit; color: inherit;
+    text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
-  .session-item .session-head {
-    display: flex; align-items: baseline; justify-content: space-between;
-    margin-bottom: 6px;
-  }
-  .session-item .session-head .ttl { font-weight: 600; }
-  .session-item details summary {
-    cursor: pointer;
-    color: var(--accent);
-    font-size: 13px;
-    list-style: none;
-    margin-top: 8px;
-  }
-  .session-item details summary::-webkit-details-marker { display: none; }
-  .session-item .ex-detail {
+  .session-main { flex: 1; min-width: 0; }
+  .session-title { font-weight: 600; font-size: var(--fs-body); }
+  .session-meta { color: var(--text-dim); font-size: var(--fs-meta); margin-top: 2px; }
+  .session-detail { padding: 0 16px 14px; }
+  .ex-detail {
     margin-top: 10px;
     padding-top: 10px;
     border-top: 1px solid var(--border);
     font-size: 14px;
   }
-  .session-item .ex-detail .nm { font-weight: 500; }
-  .session-item .ex-detail .sts { color: var(--text-dim); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .ex-detail .nm { font-weight: 500; }
+  .ex-detail .sts { color: var(--text-dim); font-variant-numeric: tabular-nums; font-size: var(--fs-meta); }
+
+  /* History — per-exercise progress rows + trend chart */
+  .progress-row { flex-direction: column; align-items: stretch; padding: 0; }
+  /* Progress screen (opened from Today) */
+  .progress-back { width: auto; padding-left: 0; margin-bottom: 2px; }
+  .progress-link { flex-shrink: 0; margin-top: 6px; }
+  .progress-toggle {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 12px 0; min-height: var(--tap-min);
+    background: transparent; border: 0; font-family: inherit; color: inherit;
+    text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .progress-nums { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+  .progress-current { font-size: var(--fs-body); font-weight: 700; }
+  .progress-best { font-size: 12px; color: var(--text-dim); }
+  .progress-detail { padding: 0 0 12px; }
+  .progress-chart {
+    width: 100%; height: auto; display: block;
+    background: var(--bg); border-radius: var(--radius-sm);
+  }
+  .progress-chart polyline {
+    fill: none; stroke: var(--accent); stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .progress-chart circle { fill: var(--accent); }
+  .progress-chart circle.pr { fill: var(--success); }
+  .progress-chart .axis { font-size: 10px; fill: var(--text-dim); }
+  .progress-prs {
+    display: flex; justify-content: space-between; gap: 8px;
+    font-size: 12.5px; color: var(--text-dim); margin-top: 8px;
+  }
 
   /* Empty state */
   .empty {
@@ -948,9 +996,9 @@
     gap: 12px;
     margin-bottom: 12px;
   }
-  .today-header h1 { font-size: 34px; line-height: 1.05; margin: 0; }
+  .today-header h1 { font-size: var(--fs-title); line-height: 1.05; margin: 0; }
   .program-status {
-    padding: 14px 16px;
+    padding: var(--card-pad);
     margin-bottom: 12px;
   }
   .program-status-top {
@@ -1220,7 +1268,7 @@
   }
   .complete-title { font-size: 17px; font-weight: 700; }
   .complete-copy { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
-  .day-stepper-card { padding: 14px 16px; }
+  .day-stepper-card { padding: var(--card-pad); }
   .week-detail-head {
     display: flex;
     align-items: flex-start;

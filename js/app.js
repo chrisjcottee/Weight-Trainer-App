@@ -2,6 +2,7 @@
 bindGlobalEvents();
 render();
 navInit();
+resumeRestFromStorage();
 
 if (!storageWorks()) {
   showModal({

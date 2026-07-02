@@ -191,5 +191,6 @@ let exerciseLibrarySearch = '';
 let editingExerciseLibraryId = null;
 let settingsTemplatesOpen = false; // Settings: "Ready-made programs" section expanded
 let settingsLibraryOpen = false;   // Settings: "Exercise Library" section expanded
+let expandedProgressName = null;  // Progress: expanded exercise-progress row, keyed by exercise name
 let modal = null;
 let sheet = null; // bottom sheet config, body-mounted like modal

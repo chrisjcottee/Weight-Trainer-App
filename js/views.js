@@ -26,7 +26,7 @@ function render() {
   if (typeof renderWorkoutBar === 'function') renderWorkoutBar();
   // Extra bottom padding only when the workout log (with its bottom bar) is shown.
   app.classList.toggle('workout-mode', view === 'workout' && !!state.active);
-  const showTabs = view === 'today' || view === 'workout' || view === 'program';
+  const showTabs = view === 'today' || view === 'workout' || view === 'program' || view === 'progress';
   tabs.hidden = !showTabs;
   if (showTabs) {
     $$('.tab', tabs).forEach(t => t.classList.toggle('active', t.dataset.tab === state.tab));
