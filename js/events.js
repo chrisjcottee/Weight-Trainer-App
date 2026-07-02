@@ -198,6 +198,20 @@ function onClick(e) {
     quickLogLastSet();
     return;
   }
+  // Exercise name tap — recent history for that exercise in a bottom sheet
+  const exHistBtn = e.target.closest && e.target.closest('[data-ex-history]');
+  if (exHistBtn) {
+    const name = exHistBtn.dataset.exHistory;
+    showSheet({ title: name, bodyHtml: exerciseHistoryHtml(name) });
+    return;
+  }
+  if (e.target.id === 'sheet-close' || e.target.id === 'sheet-backdrop') {
+    closeSheet();
+    return;
+  }
+  // A tap inside the sheet body does nothing special but must not fall
+  // through to handlers underneath.
+  if (e.target.closest && e.target.closest('.sheet')) return;
   // The reorder handle is drag-only — a stray tap on it must not select the row.
   if (e.target.closest && e.target.closest('.drag-handle')) return;
 
@@ -564,16 +578,6 @@ function onClick(e) {
     render();
     return;
   }
-  // Reopen a completed exercise in the Completed section to edit its logged sets
-  const toggleDone = e.target.closest && e.target.closest('[data-toggle-done]');
-  if (toggleDone) {
-    const idx = +toggleDone.dataset.toggleDone;
-    maybeFlushLinger(idx);
-    expandedExIdx = (expandedExIdx === idx) ? null : idx;
-    editingSet = null;
-    render();
-    return;
-  }
   const editEl = e.target.closest && e.target.closest('[data-edit-set]');
   if (editEl) {
     const [exIdx, setIdx] = editEl.dataset.editSet.split(',').map(Number);
@@ -682,6 +686,10 @@ function onInput(e) {
 function onKeydown(e) {
   if (e.key === 'Escape' && document.querySelector('.ex-menu-wrap.open')) {
     closeExMenus();
+    return;
+  }
+  if (e.key === 'Escape' && sheet) {
+    closeSheet();
     return;
   }
   if (e.key === 'Enter') {

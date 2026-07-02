@@ -44,6 +44,38 @@ function render() {
 const Views = {};
 
 
+/* ---------- Bottom sheet ----------
+   A slide-up panel for glanceable content (e.g. an exercise's recent
+   history). Body-mounted like the modal; back / Escape / backdrop close. */
+function showSheet(cfg) {
+  sheet = cfg;
+  let root = document.getElementById('sheet-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'sheet-root';
+    document.body.appendChild(root);
+  }
+  root.innerHTML = `
+    <div class="sheet-backdrop" id="sheet-backdrop">
+      <div class="sheet" role="dialog" aria-label="${esc(sheet.title)}">
+        <div class="sheet-grip" aria-hidden="true"></div>
+        <div class="row between" style="margin-bottom:6px;">
+          <h3 style="margin:0;">${esc(sheet.title)}</h3>
+          <button class="btn icon" id="sheet-close" aria-label="Close">×</button>
+        </div>
+        ${sheet.bodyHtml || ''}
+      </div>
+    </div>
+  `;
+  if (typeof navMaybeArm === 'function') navMaybeArm();
+}
+
+function closeSheet() {
+  sheet = null;
+  const el = document.getElementById('sheet-root');
+  if (el) el.remove();
+}
+
 /* ---------- Modal ---------- */
 function showModal(cfg) {
   modal = cfg;

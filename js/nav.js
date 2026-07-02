@@ -19,6 +19,10 @@ function navEnsureArmed() {
 
 // Close the topmost layer. Returns true if the back press was consumed.
 function navConsumeBack() {
+  if (sheet) {
+    closeSheet();
+    return true;
+  }
   if (modal) {
     // Same semantics as tapping Cancel / the backdrop.
     if (modal.onCancel) modal.onCancel();
@@ -62,7 +66,7 @@ function navInit() {
 // Called after every render (and on modal open): arm the trap whenever a
 // closable layer is on screen.
 function navMaybeArm() {
-  if (modal || state.editing || state.celebration || state.tab !== 'today') {
+  if (modal || sheet || state.editing || state.celebration || state.tab !== 'today') {
     navEnsureArmed();
   }
 }

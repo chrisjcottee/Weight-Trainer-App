@@ -83,7 +83,7 @@ function activeStepHtml(ex, i) {
         <div class="dense-line">
           <div style="min-width:0;">
             <div class="rail-eyebrow active">Active</div>
-            <div class="ex-rail-name" style="font-size:17px;">${name}</div>
+            <button type="button" class="ex-rail-name ex-name-btn" style="font-size:17px;" data-ex-history="${name}" aria-label="Show history for ${name}">${name} <span class="ex-name-hist" aria-hidden="true">◷</span></button>
           </div>
           <div class="row" style="gap:6px;">
             <span class="badge">${ex.sets.length}/${exerciseSlots(ex)}</span>
@@ -206,7 +206,9 @@ function completedSectionHtml(a, linger) {
   `;
 }
 
-// A row inside the Completed section — tap to expand and edit its logged sets.
+// A row inside the Completed section. Exercises with logged sets render
+// them directly (tap a set to edit — no expand step in between); rows with
+// nothing logged (skipped / removed) stay a one-line summary.
 function completedRowHtml(ex, i) {
   const skipped = !!ex.skipped;
   const removed = !!ex.removed;
@@ -217,19 +219,13 @@ function completedRowHtml(ex, i) {
     : skipped
       ? `<span class="badge warn">${ex.sets.length ? 'Skipped rest' : 'Skipped'}</span>`
       : `<span class="badge success">${ex.sets.length}/${exerciseSlots(ex)} ✓</span>`;
-  const editable = ex.sets.length > 0;
-  const expanded = editable && i === expandedExIdx;
-  // Completed exercises aren't deletable here — whole-exercise delete lives in
-  // the active exercise's 3-dot menu. Set rows inside still swipe to delete.
-  const wrapOpen = (extra) => `<div class="ex-rail-body${extra.cls || ''}"${extra.attrs || ''}>`;
-  const wrapClose = '</div>';
 
-  if (expanded) {
+  if (ex.sets.length) {
     return `
       <div class="ex-rail-step ${skipped ? 'skipped' : 'completed'} expanded" data-ex-idx="${i}">
         <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
-        ${wrapOpen({})}
-          <div class="dense-line edit-toggle" data-toggle-done="${i}">
+        <div class="ex-rail-body">
+          <div class="dense-line">
             <div class="ex-rail-name">${name}</div>
             ${badge}
           </div>
@@ -237,27 +233,24 @@ function completedRowHtml(ex, i) {
             ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
           </div>
           ${removed ? '' : addSetBtnHtml(i)}
-        ${wrapClose}
+        </div>
       </div>
     `;
   }
 
   const summary = removed
-    ? (ex.sets.length ? `${esc(sessionExerciseSetSummary(ex))} · removed from program` : 'Removed from program')
-    : skipped
-      ? (ex.sets.length ? `${esc(sessionExerciseSetSummary(ex))} · skipped rest` : 'Skipped this session')
-      : ex.sets.map(s => `${fmtNum(s.weight)}×${s.reps}`).join(' · ');
-  const editAttr = editable ? ` data-toggle-done="${i}"` : '';
+    ? 'Removed from program'
+    : 'Skipped this session';
   return `
     <div class="ex-rail-step ${skipped ? 'skipped' : 'completed'} dense-collapsed" data-ex-idx="${i}">
       <div class="ex-rail-node"><span class="ex-rail-circle">${circle}</span></div>
-      ${wrapOpen({ cls: editable ? ' editable' : '', attrs: editAttr })}
+      <div class="ex-rail-body">
         <div class="dense-line">
           <div class="ex-rail-name">${name}</div>
           ${badge}
         </div>
-        <div class="dense-summary">${summary}${editable ? ' · tap to edit' : ''}</div>
-      ${wrapClose}
+        <div class="dense-summary">${summary}</div>
+      </div>
     </div>
   `;
 }
@@ -353,4 +346,28 @@ function repsStepperHtml(value) {
       <input type="hidden" class="set-r" value="${value}">
     </div>
   `;
+}
+
+/* ---------- Exercise mini-history sheet ----------
+   The last few sessions for one exercise — answers "what did I do last
+   time?" in one tap without leaving the workout. */
+function exerciseHistoryHtml(name) {
+  const rows = [];
+  for (let i = state.sessions.length - 1; i >= 0 && rows.length < 5; i--) {
+    const s = state.sessions[i];
+    const ex = s.exercises.find(e => e.name === name && e.sets.length);
+    if (!ex) continue;
+    const best = ex.sets.reduce((m, st) => (st.weight > m ? st.weight : m), 0);
+    rows.push(`
+      <div class="hist-row">
+        <div class="hist-date">${esc(fmtDate(s.date))}</div>
+        <div class="hist-sets">${esc(sessionExerciseSetSummary(ex))}</div>
+        <div class="hist-best">${fmtNum(best)} kg</div>
+      </div>
+    `);
+  }
+  if (!rows.length) {
+    return `<div class="subtle" style="padding:12px 0;">No previous sessions for this exercise yet.</div>`;
+  }
+  return `<div class="hist-list">${rows.join('')}</div>`;
 }

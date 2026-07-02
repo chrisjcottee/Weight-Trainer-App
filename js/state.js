@@ -192,3 +192,4 @@ let editingExerciseLibraryId = null;
 let settingsTemplatesOpen = false; // Settings: "Ready-made programs" section expanded
 let settingsLibraryOpen = false;   // Settings: "Exercise Library" section expanded
 let modal = null;
+let sheet = null; // bottom sheet config, body-mounted like modal

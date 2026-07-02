@@ -1021,6 +1021,50 @@
     margin-top: 12px;
     border-top: 1px solid var(--border);
   }
+  /* Bottom sheet — slide-up panel (exercise mini-history) */
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 90;
+    display: flex; align-items: flex-end;
+  }
+  .sheet {
+    width: 100%; max-width: 640px; margin: 0 auto;
+    background: var(--card);
+    border-radius: 18px 18px 0 0;
+    padding: 8px 20px calc(16px + var(--safe-bottom));
+    max-height: 70vh; overflow-y: auto;
+    animation: sheet-in 240ms cubic-bezier(.2,.7,.2,1);
+  }
+  .sheet-grip {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: var(--border); margin: 4px auto 10px;
+  }
+  @keyframes sheet-in {
+    from { transform: translateY(40%); opacity: 0.6; }
+    to { transform: none; opacity: 1; }
+  }
+  .hist-list { border-top: 1px solid var(--border); }
+  .hist-row {
+    display: grid; grid-template-columns: 86px 1fr auto;
+    gap: 10px; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .hist-date { font-size: 13px; color: var(--text-dim); }
+  .hist-sets { font-size: 14px; font-variant-numeric: tabular-nums; min-width: 0; }
+  .hist-best { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+
+  /* Tappable exercise name on the active card (opens the history sheet) */
+  .ex-name-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    max-width: 100%; min-height: 32px;
+    border: 0; padding: 0; background: transparent;
+    font-family: inherit; font-weight: 600; color: var(--text);
+    text-align: left; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ex-name-hist { color: var(--text-faint); font-size: 14px; }
+
   /* Undo snackbar — floats above the tab bar (and workout bar when present) */
   #undo-bar {
     position: fixed;
