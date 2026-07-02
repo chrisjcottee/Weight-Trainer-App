@@ -32,6 +32,8 @@ function render() {
     if (wt) wt.classList.toggle('has-session', !!state.active);
   }
   if (modal) renderModal();
+  // Arm the back-trap whenever a closable layer is on screen.
+  if (typeof navMaybeArm === 'function') navMaybeArm();
   // Scroll to top on view change (but not for active workout re-renders)
   if (view !== 'workout') window.scrollTo(0, 0);
 }
@@ -44,6 +46,7 @@ const Views = {};
 function showModal(cfg) {
   modal = cfg;
   renderModal();
+  if (typeof navMaybeArm === 'function') navMaybeArm();
 }
 function closeModal() {
   modal = null;

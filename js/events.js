@@ -188,6 +188,11 @@ function onFocusIn(e) {
 function onClick(e) {
   // A just-finished swipe shouldn't trigger a tap action.
   if (suppressNextClick) { suppressNextClick = false; return; }
+
+  if (e.target.id === 'undo-action') {
+    runPendingUndo();
+    return;
+  }
   // The reorder handle is drag-only — a stray tap on it must not select the row.
   if (e.target.closest && e.target.closest('.drag-handle')) return;
 

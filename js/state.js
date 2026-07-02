@@ -128,6 +128,8 @@ function normalizeExerciseLibrary(s) {
 }
 
 function save() {
+  // A later mutation commits any pending undo (see undo-bar.js).
+  if (typeof noteSaveForUndo === 'function') noteSaveForUndo();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     // Verify it actually persisted (some browsers silently accept then drop)

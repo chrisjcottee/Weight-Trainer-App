@@ -1,6 +1,7 @@
 /* ---------- Boot ---------- */
 bindGlobalEvents();
 render();
+navInit();
 
 if (!storageWorks()) {
   showModal({

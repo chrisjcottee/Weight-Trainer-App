@@ -1001,6 +1001,40 @@
     margin-top: 12px;
     border-top: 1px solid var(--border);
   }
+  /* Undo snackbar — floats above the tab bar (and workout bar when present) */
+  #undo-bar {
+    position: fixed;
+    left: 16px; right: 16px;
+    bottom: calc(var(--safe-bottom) + var(--tab-h) + 12px);
+    max-width: 480px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--text); color: white;
+    border-radius: 12px; padding: 6px 6px 6px 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    z-index: 60;
+    animation: undo-in 200ms ease-out;
+  }
+  /* During a workout, clear the fixed Finish bar too (#undo-bar is a later
+     sibling of #app on <body>). */
+  #app.workout-mode ~ #undo-bar {
+    bottom: calc(var(--safe-bottom) + var(--tab-h) + 80px);
+  }
+  #undo-bar .undo-msg {
+    font-size: 14px; font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #undo-bar #undo-action {
+    flex-shrink: 0; min-height: 44px; padding: 0 18px;
+    border: 0; border-radius: 9px;
+    background: rgba(255, 255, 255, 0.16); color: #7cc4ff;
+    font-family: inherit; font-size: 15px; font-weight: 700;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  @keyframes undo-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+
   /* Settings: one-line stats summary + collapsible sections */
   .stats-line { margin: -2px 0 4px; }
   .settings-section { padding: 4px 16px; }

@@ -1,7 +1,7 @@
 'use strict';
 
 /* ---------- State ---------- */
-const APP_VERSION = 'v23';
+const APP_VERSION = 'v24';
 
 const EXERCISE_LIBRARY = [
   // Squat / quad
