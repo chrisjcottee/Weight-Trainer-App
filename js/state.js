@@ -7,6 +7,8 @@ function load() {
 }
 
 function migrate(s) {
+  // The History tab was folded into Today's calendar.
+  if (s.tab === 'history') s.tab = 'today';
   s.exerciseLibrary = normalizeExerciseLibrary(s);
   s.programLibrary = normalizeProgramLibrary(s);
   if (!s.activeProgramId && s.programLibrary.length) {
@@ -185,4 +187,6 @@ let selectedWeekIndex = null; // UI-only selected week on Today
 let expandedDayKey = null;    // UI-only expanded Today day, formatted as "week:day"
 let exerciseLibrarySearch = '';
 let editingExerciseLibraryId = null;
+let settingsTemplatesOpen = false; // Settings: "Ready-made programs" section expanded
+let settingsLibraryOpen = false;   // Settings: "Exercise Library" section expanded
 let modal = null;

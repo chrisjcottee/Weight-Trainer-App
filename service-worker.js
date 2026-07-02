@@ -7,7 +7,7 @@
    over without users having to close every tab.
 
    IMPORTANT: bump VERSION on every release so old caches drop. */
-const VERSION = 'v34';
+const VERSION = 'v35';
 const CACHE = `wt-${VERSION}`;
 const SHELL = [
   './',
@@ -20,7 +20,6 @@ const SHELL = [
   './js/programs.js',
   './js/views/today.js',
   './js/views/settings.js',
-  './js/views/history.js',
   './js/views/workout.js',
   './js/views/celebration.js',
   './js/workouts.js',

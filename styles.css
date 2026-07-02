@@ -1001,6 +1001,18 @@
     margin-top: 12px;
     border-top: 1px solid var(--border);
   }
+  /* Settings: one-line stats summary + collapsible sections */
+  .stats-line { margin: -2px 0 4px; }
+  .settings-section { padding: 4px 16px; }
+  .settings-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; min-height: 48px; padding: 4px 0;
+    border: 0; background: transparent;
+    font-family: inherit; font-size: 17px; font-weight: 600; color: var(--text);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .settings-toggle .chevron { color: var(--text-faint); }
+  .settings-section-body { padding-bottom: 12px; }
   .library-row {
     display: flex;
     align-items: center;

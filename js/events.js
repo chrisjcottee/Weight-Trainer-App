@@ -377,6 +377,15 @@ function onClick(e) {
     render();
     return;
   }
+  // Collapsible Settings sections (Ready-made programs, Exercise Library)
+  const settingsToggle = e.target.closest && e.target.closest('[data-toggle-settings]');
+  if (settingsToggle) {
+    const key = settingsToggle.dataset.toggleSettings;
+    if (key === 'templates') settingsTemplatesOpen = !settingsTemplatesOpen;
+    if (key === 'library') settingsLibraryOpen = !settingsLibraryOpen;
+    render();
+    return;
+  }
   if (e.target.dataset.act === 'use-template') {
     const id = e.target.dataset.templateId;
     const tpl = findPrebuiltProgram(id);

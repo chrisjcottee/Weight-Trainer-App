@@ -15,7 +15,7 @@ function render() {
   const app = $('#app');
   const tabs = $('#tabs');
   let body = (Views[view] || Views.today)();
-  if (view !== 'workout') {
+  if (view === 'program') {
     body += `<div class="version-stamp">${APP_VERSION}</div>`;
   }
   app.innerHTML = body;
@@ -24,7 +24,7 @@ function render() {
   if (!state.active && typeof stopRest === 'function') stopRest();
   // Extra bottom padding only when the workout log (with its Finish bar) is shown.
   app.classList.toggle('workout-mode', view === 'workout' && !!state.active);
-  const showTabs = view === 'today' || view === 'workout' || view === 'program' || view === 'history';
+  const showTabs = view === 'today' || view === 'workout' || view === 'program';
   tabs.hidden = !showTabs;
   if (showTabs) {
     $$('.tab', tabs).forEach(t => t.classList.toggle('active', t.dataset.tab === state.tab));

@@ -1,7 +1,7 @@
 'use strict';
 
 /* ---------- State ---------- */
-const APP_VERSION = 'v22 · program calendar';
+const APP_VERSION = 'v23';
 
 const EXERCISE_LIBRARY = [
   // Squat / quad

@@ -56,20 +56,24 @@ Views.workout = function() {
   `;
 };
 
+// Empty state doubles as a launcher: one tap starts the next due workout.
 function workoutEmptyHtml() {
   const complete = programIsComplete();
   const next = complete ? -1 : nextAvailableDayIndex();
   const day = (next >= 0 && state.program) ? state.program.template[next] : null;
-  const upNext = day
-    ? `<div class="faint" style="margin-top:8px;">Up next: ${esc(day.name || 'Workout ' + (next + 1))}</div>`
-    : `<div class="faint" style="margin-top:8px;">${complete ? 'Program complete.' : 'Start one from Today.'}</div>`;
+  const action = day
+    ? `<button class="btn" data-start-day="${next}" style="margin-top:18px; max-width:280px;">Start ${esc(day.name || 'Workout ' + (next + 1))}</button>`
+    : `<button class="btn" data-tab="today" style="margin-top:18px; max-width:260px;">Go to Today</button>`;
+  const note = day
+    ? ''
+    : `<div class="faint" style="margin-top:8px;">${complete ? 'Program complete.' : 'All done for today.'}</div>`;
   return `
     <h1>Workout</h1>
     <div class="empty">
       <div class="ico">💪</div>
       <div>No active workout.</div>
-      ${upNext}
-      <button class="btn" data-tab="today" style="margin-top:18px; max-width:260px;">Go to Today</button>
+      ${note}
+      ${action}
     </div>
   `;
 }
@@ -174,7 +178,6 @@ function lingerStepHtml(ex, i) {
           </div>
           <span class="badge success">${ex.sets.length}/${exerciseSlots(ex)} ✓</span>
         </div>
-        <div class="ex-rail-meta" style="margin:2px 0 0;">Nice work — edit, add a set, or pick the next exercise</div>
         <div class="sets-modern">
           ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
         </div>
@@ -236,7 +239,6 @@ function completedRowHtml(ex, i) {
             <div class="ex-rail-name">${name}</div>
             ${badge}
           </div>
-          <div class="ex-rail-meta" style="margin:2px 0 0;">Tap a set to edit · swipe a set to delete · tap the title to close</div>
           <div class="sets-modern">
             ${ex.sets.map((s, si) => setRowHtml(ex, i, si, false)).join('')}
           </div>
