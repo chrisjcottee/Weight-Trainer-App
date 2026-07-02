@@ -239,49 +239,42 @@ function removeExerciseFromWorkout(exIdx) {
     return;
   }
   const hasSets = ex.sets.length > 0;
-  showModal({
-    title: 'Remove exercise?',
-    body: hasSets
-      ? `${ex.name} will be removed from ${a.dayName} going forward. The ${ex.sets.length} set${ex.sets.length === 1 ? '' : 's'} you logged today stay${ex.sets.length === 1 ? 's' : ''} saved.`
-      : `${ex.name} will be removed from this workout and from ${a.dayName} going forward.`,
-    confirmText: 'Remove',
-    danger: true,
-    onConfirm: () => {
-      closeModal();
-      // Remove from the program template (and saved program) first, while the
-      // non-removed entries still line up with the template.
-      const day = templateDayForActive();
-      if (day) {
-        let ti = templateIdxForExercise(exIdx);
-        if (!day.exercises[ti] || day.exercises[ti].name !== ex.name) {
-          ti = day.exercises.findIndex(e => e.name === ex.name);
-        }
-        if (ti >= 0) day.exercises.splice(ti, 1);
-        syncActiveProgramRecord();
-      }
-      if (hasSets) {
-        // Keep the logged sets in the session: retain the exercise, trim its
-        // slots to what was logged so it resolves into the Completed section.
-        ex.removed = true;
-        setExerciseSlots(ex, ex.sets.length);
-        if (a.activeExIdx === exIdx) a.activeExIdx = -1;
-        if (lingeringExIdx === exIdx) lingeringExIdx = null;
-      } else {
-        a.exercises.splice(exIdx, 1);
-        if (a.activeExIdx != null && a.activeExIdx >= 0) {
-          a.activeExIdx = a.activeExIdx === exIdx ? -1 : a.activeExIdx > exIdx ? a.activeExIdx - 1 : a.activeExIdx;
-        }
-        const shift = v => (v == null || v === exIdx) ? null : v > exIdx ? v - 1 : v;
-        lingeringExIdx = shift(lingeringExIdx);
-        expandedExIdx = shift(expandedExIdx);
-        if (editingSet) {
-          if (editingSet.exIdx === exIdx) editingSet = null;
-          else if (editingSet.exIdx > exIdx) editingSet.exIdx--;
-        }
-      }
-      renderRailReorder();
+  // Applies immediately with Undo. The snapshot spans active + program +
+  // library, so undo also restores the template splice in one shot.
+  const undo = captureUndoSlices(['active', 'program', 'programLibrary']);
+  // Remove from the program template (and saved program) first, while the
+  // non-removed entries still line up with the template.
+  const day = templateDayForActive();
+  if (day) {
+    let ti = templateIdxForExercise(exIdx);
+    if (!day.exercises[ti] || day.exercises[ti].name !== ex.name) {
+      ti = day.exercises.findIndex(e => e.name === ex.name);
     }
-  });
+    if (ti >= 0) day.exercises.splice(ti, 1);
+    syncActiveProgramRecord();
+  }
+  if (hasSets) {
+    // Keep the logged sets in the session: retain the exercise, trim its
+    // slots to what was logged so it resolves into the Completed section.
+    ex.removed = true;
+    setExerciseSlots(ex, ex.sets.length);
+    if (a.activeExIdx === exIdx) a.activeExIdx = -1;
+    if (lingeringExIdx === exIdx) lingeringExIdx = null;
+  } else {
+    a.exercises.splice(exIdx, 1);
+    if (a.activeExIdx != null && a.activeExIdx >= 0) {
+      a.activeExIdx = a.activeExIdx === exIdx ? -1 : a.activeExIdx > exIdx ? a.activeExIdx - 1 : a.activeExIdx;
+    }
+    const shift = v => (v == null || v === exIdx) ? null : v > exIdx ? v - 1 : v;
+    lingeringExIdx = shift(lingeringExIdx);
+    expandedExIdx = shift(expandedExIdx);
+    if (editingSet) {
+      if (editingSet.exIdx === exIdx) editingSet = null;
+      else if (editingSet.exIdx > exIdx) editingSet.exIdx--;
+    }
+  }
+  renderRailReorder();
+  undoBar(`${ex.name} removed from ${a.dayName}`, undo);
 }
 
 // Drag-to-reorder the upcoming exercises. slotIdxs are the array positions
@@ -362,6 +355,8 @@ function removeSet(exIdx, si) {
   const slots = exerciseSlots(ex);
   // Deleting an unlogged slot needs a spare slot, and we always keep >= 1 set.
   if (!logged && slots <= Math.max(1, ex.sets.length)) return;
+  // Deleting real logged data gets an Undo; trimming an empty slot doesn't.
+  const undo = logged ? captureUndoSlices(['active']) : null;
   if (logged) ex.sets.splice(si, 1);
   setExerciseSlots(ex, slots - 1);
   editingSet = null;
@@ -373,6 +368,7 @@ function removeSet(exIdx, si) {
   // In-place change — re-render without the reorder slide so the view stays put.
   save();
   render();
+  if (undo) undoBar('Set deleted', undo);
 }
 
 /* ---------- Rail reorder animation (FLIP) ---------- */
@@ -478,30 +474,21 @@ function withUnloggedSetGuard(next, continueText) {
   return true;
 }
 
+// Skips apply immediately with an Undo snackbar instead of a confirm.
 function skipExercise(exIdx) {
   const a = state.active;
   if (!a) return;
   const ex = a.exercises[exIdx];
   if (!ex || exerciseIsResolved(ex)) return;
 
-  const applySkip = () => {
-    maybeFlushLinger(exIdx);
-    ex.skipped = true;
-    ex.skippedAt = Date.now();
-    editingSet = null;
-    a.activeExIdx = -1; // user selects the next exercise themselves
-    closeModal();
-    renderRailReorder();
-  };
-
-  showModal({
-    title: ex.sets.length ? 'Skip remaining sets?' : 'Skip exercise?',
-    body: ex.sets.length
-      ? 'Logged sets stay saved. The remaining sets for this exercise will be marked skipped.'
-      : 'This exercise will be marked skipped and the workout will move to the next exercise.',
-    confirmText: ex.sets.length ? 'Skip Rest' : 'Skip',
-    onConfirm: applySkip
-  });
+  const undo = captureUndoSlices(['active']);
+  maybeFlushLinger(exIdx);
+  ex.skipped = true;
+  ex.skippedAt = Date.now();
+  editingSet = null;
+  a.activeExIdx = -1; // user selects the next exercise themselves
+  renderRailReorder();
+  undoBar(ex.sets.length ? `${ex.name} — remaining sets skipped` : `${ex.name} skipped`, undo);
 }
 
 function endWorkoutFlow() {
@@ -558,6 +545,22 @@ function saveEditedSet(row) {
   editingSet = null;
   save();
   render();
+}
+
+// One-tap quick-log from the bottom bar: fill the active row with its
+// "last time" values and log it — same path as the Last chip + ✓.
+function quickLogLastSet() {
+  const row = document.querySelector('.set-row.active');
+  const info = quickLogInfo();
+  if (!row || !info) return;
+  const w = row.querySelector('.set-w');
+  const rHidden = row.querySelector('.set-r');
+  const rDisplay = row.querySelector('.reps-stepper .step-val');
+  if (w) w.value = String(info.weight);
+  if (rHidden) rHidden.value = String(info.reps);
+  if (rDisplay) rDisplay.textContent = String(info.reps);
+  row.dataset.dirty = '1';
+  logCurrentSet(row);
 }
 
 function logCurrentSet(row) {
@@ -871,21 +874,14 @@ function finishBackfillWorkout(a) {
   render();
 }
 
+// Deletes immediately with an Undo snackbar instead of a confirm.
 function deleteLoggedSession(sessionIdx) {
   const s = state.sessions[sessionIdx];
   if (!s) return;
-  const when = new Date(s.date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-  showModal({
-    title: 'Delete this log?',
-    body: (s.dayName || 'This workout') + ' on ' + when + ' will be removed from the calendar. This cannot be undone.',
-    confirmText: 'Delete',
-    danger: true,
-    onConfirm: () => {
-      state.sessions.splice(sessionIdx, 1);
-      syncCalendarRun();
-      closeModal();
-      save();
-      render();
-    }
-  });
+  const undo = captureUndoSlices(['sessions', 'currentRun']);
+  state.sessions.splice(sessionIdx, 1);
+  syncCalendarRun();
+  save();
+  render();
+  undoBar(`${s.dayName || 'Workout'} log deleted`, undo);
 }

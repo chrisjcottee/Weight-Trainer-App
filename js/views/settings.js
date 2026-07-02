@@ -1,22 +1,19 @@
 Views.program = function() {
   return `
-    <h1>Library</h1>
+    <h1>Settings</h1>
+    ${statsSummaryHtml()}
 
     <h2>Programs</h2>
     <div class="card">
       ${programLibraryHtml()}
     </div>
 
-    <h2>Ready-made programs</h2>
-    <div class="card">
+    ${collapsibleSectionHtml('templates', 'Ready-made programs', settingsTemplatesOpen, `
       <div class="subtle" style="margin-bottom:12px;">Add a copy of a prebuilt program to your library.</div>
       ${programTemplateListHtml()}
-    </div>
+    `)}
 
-    <h2>Exercise Library</h2>
-    <div class="card">
-      ${exerciseLibraryHtml()}
-    </div>
+    ${collapsibleSectionHtml('library', 'Exercise Library', settingsLibraryOpen, exerciseLibraryHtml())}
 
     <h2>Workout</h2>
     <div class="card">
@@ -31,16 +28,37 @@ Views.program = function() {
       <div class="faint">Countdown after each logged set. The ±15s buttons during a workout update this too.</div>
     </div>
 
-    <h2>Danger zone</h2>
-    <button class="btn ghost" id="reset-program" style="color: var(--danger);">Reset Program &amp; History</button>
+    <h2>Data</h2>
+    <div class="card">
+      <button class="btn ghost" id="reset-program" style="color: var(--danger);">Reset Program &amp; History</button>
+    </div>
   `;
 };
+
+// The one place (outside celebration) where XP / level / streak show up.
+function statsSummaryHtml() {
+  const s = state.stats || { xp: 0, streak: 0 };
+  const lvl = levelFromXp(s.xp);
+  return `<div class="subtle stats-line">Level ${lvl} &middot; ${s.xp.toLocaleString()} XP${s.streak ? ` &middot; &#128293; ${s.streak} day streak` : ''}</div>`;
+}
+
+// A section that renders as just a tappable header row until opened.
+function collapsibleSectionHtml(key, title, open, bodyHtml) {
+  return `
+    <div class="card settings-section ${open ? 'open' : ''}">
+      <button class="settings-toggle" data-toggle-settings="${key}" aria-expanded="${open}">
+        <span>${title}</span>
+        <span class="chevron" aria-hidden="true">${open ? '&#9662;' : '&#9656;'}</span>
+      </button>
+      ${open ? `<div class="settings-section-body">${bodyHtml}</div>` : ''}
+    </div>
+  `;
+}
 
 function programLibraryHtml() {
   const programs = activeProgramLibrary();
   return `
     <button class="btn secondary" id="add-program" style="margin-bottom:12px;">+ New Program</button>
-    <div class="subtle">${programs.length} saved program${programs.length === 1 ? '' : 's'}</div>
     <div class="library-list">
       ${programs.length ? programs.map(programLibraryRowHtml).join('') : `<div class="empty" style="padding:24px 12px;">No saved programs yet.</div>`}
     </div>
@@ -105,4 +123,3 @@ function exerciseLibraryRowHtml(ex) {
     </div>
   `;
 }
-

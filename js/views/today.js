@@ -1,4 +1,4 @@
-/* ---------- Program tab ----------
+/* ---------- Today tab ----------
    Calendar-anchored program tracker. Weeks are real Mon–Sun weeks; the
    required workouts can be completed in any order within the week. Each
    completed session is logged against its calendar day; tapping a day shows
@@ -16,6 +16,7 @@ Views.today = function() {
         <h1>Today</h1>
         <div class="program-sub">${esc(program.name)}</div>
       </div>
+      <button class="btn secondary small progress-link" data-tab="progress">Progress &#8250;</button>
     </div>
 
     ${programIsComplete() ? programCompleteBannerHtml(program) : ''}
@@ -29,13 +30,6 @@ Views.today = function() {
 function calendarCardHtml(currentWeek) {
   const program = state.program;
   const dows = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  const legend = `
-    <div class="cal-legend">
-      ${program.template.map((d, i) => `
-        <span class="key"><span class="swatch day-c${i % 6}"></span>${esc(d.name || 'Workout ' + (i + 1))}</span>
-      `).join('')}
-    </div>`;
-
   const dowRow = `
     <div class="cal-row">
       <span></span>
@@ -48,10 +42,6 @@ function calendarCardHtml(currentWeek) {
 
   return `
     <div class="card cal-card">
-      <div class="row between" style="align-items:flex-start;">
-        <div class="program-name">Calendar</div>
-        ${legend}
-      </div>
       <div class="cal-rows">
         ${dowRow}
         ${weeks.map(w => calendarWeekRowHtml(w, currentWeek)).join('')}
@@ -100,7 +90,7 @@ function selectedDayDetailHtml(currentWeek) {
   const isToday = sameLocalDay(ts, Date.now());
   const sessions = sessionsOnDate(ts);
   const dateLabel = new Date(ts).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
-  const label = isToday ? 'Today &middot; ' + esc(dateLabel) : esc(dateLabel);
+  const label = esc(dateLabel);
 
   let html = `<div class="section-label cal-day-label">${label}</div>`;
 
@@ -128,7 +118,6 @@ function selectedDayDetailHtml(currentWeek) {
         .filter(({ i }) => !doneToday.includes(i));
       if (due.length) {
         due.forEach(({ d, i }) => { html += pickCardHtml(d, i); });
-        html += `<div class="faint cal-hint">Any order &mdash; finishing a workout logs it to today. Tap a card to see its exercises.</div>`;
       } else {
         html += allDoneTodayCardHtml();
       }
@@ -154,9 +143,7 @@ function pastDayLogHtml(ts) {
     .map((d, i) => ({ d, i }))
     .filter(({ i }) => !loggedIdxs.includes(i));
   if (!due.length) return '';
-  let html = due.map(({ d, i }) => pickCardHtml(d, i, ts)).join('');
-  html += `<div class="faint cal-hint">Missed one? Add a workout you did on this day to your history.</div>`;
-  return html;
+  return due.map(({ d, i }) => pickCardHtml(d, i, ts)).join('');
 }
 
 function allDoneTodayCardHtml() {

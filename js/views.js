@@ -15,16 +15,18 @@ function render() {
   const app = $('#app');
   const tabs = $('#tabs');
   let body = (Views[view] || Views.today)();
-  if (view !== 'workout') {
+  if (view === 'program') {
     body += `<div class="version-stamp">${APP_VERSION}</div>`;
   }
   app.innerHTML = body;
   // The rest timer belongs to the active session, not a specific tab — keep it
   // running while you navigate, and clear it only when the session ends.
   if (!state.active && typeof stopRest === 'function') stopRest();
-  // Extra bottom padding only when the workout log (with its Finish bar) is shown.
+  // The unified bottom bar (Finish + rest/quick-log) lives on <body>.
+  if (typeof renderWorkoutBar === 'function') renderWorkoutBar();
+  // Extra bottom padding only when the workout log (with its bottom bar) is shown.
   app.classList.toggle('workout-mode', view === 'workout' && !!state.active);
-  const showTabs = view === 'today' || view === 'workout' || view === 'program' || view === 'history';
+  const showTabs = view === 'today' || view === 'workout' || view === 'program' || view === 'progress';
   tabs.hidden = !showTabs;
   if (showTabs) {
     $$('.tab', tabs).forEach(t => t.classList.toggle('active', t.dataset.tab === state.tab));
@@ -32,6 +34,8 @@ function render() {
     if (wt) wt.classList.toggle('has-session', !!state.active);
   }
   if (modal) renderModal();
+  // Arm the back-trap whenever a closable layer is on screen.
+  if (typeof navMaybeArm === 'function') navMaybeArm();
   // Scroll to top on view change (but not for active workout re-renders)
   if (view !== 'workout') window.scrollTo(0, 0);
 }
@@ -40,10 +44,43 @@ function render() {
 const Views = {};
 
 
+/* ---------- Bottom sheet ----------
+   A slide-up panel for glanceable content (e.g. an exercise's recent
+   history). Body-mounted like the modal; back / Escape / backdrop close. */
+function showSheet(cfg) {
+  sheet = cfg;
+  let root = document.getElementById('sheet-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'sheet-root';
+    document.body.appendChild(root);
+  }
+  root.innerHTML = `
+    <div class="sheet-backdrop" id="sheet-backdrop">
+      <div class="sheet" role="dialog" aria-label="${esc(sheet.title)}">
+        <div class="sheet-grip" aria-hidden="true"></div>
+        <div class="row between" style="margin-bottom:6px;">
+          <h3 style="margin:0;">${esc(sheet.title)}</h3>
+          <button class="btn icon" id="sheet-close" aria-label="Close">×</button>
+        </div>
+        ${sheet.bodyHtml || ''}
+      </div>
+    </div>
+  `;
+  if (typeof navMaybeArm === 'function') navMaybeArm();
+}
+
+function closeSheet() {
+  sheet = null;
+  const el = document.getElementById('sheet-root');
+  if (el) el.remove();
+}
+
 /* ---------- Modal ---------- */
 function showModal(cfg) {
   modal = cfg;
   renderModal();
+  if (typeof navMaybeArm === 'function') navMaybeArm();
 }
 function closeModal() {
   modal = null;

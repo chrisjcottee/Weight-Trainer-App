@@ -1,54 +1,29 @@
-Views.history = function() {
-  if (!state.sessions.length) {
-    return `
-      <h1>History</h1>
+/* ---------- Progress (opened from Today) ----------
+   Per-exercise trend of top-set weight across sessions, with best/current
+   PRs and an SVG chart. Session-by-session logs live on the Today
+   calendar; this screen answers "am I getting stronger?". */
+
+Views.progress = function() {
+  const data = exerciseProgressData();
+  const body = data.length
+    ? `
+      <div class="card">
+        <div class="library-list">
+          ${data.map(progressRowHtml).join('')}
+        </div>
+      </div>`
+    : `
       <div class="empty">
-        <div class="ico">◷</div>
-        <div>No workouts logged yet.</div>
-        <div class="faint" style="margin-top:8px;">Complete a workout to see it here.</div>
-      </div>
-    `;
-  }
-  const sorted = state.sessions.slice().sort((a, b) => b.date - a.date);
+        <div class="ico">📈</div>
+        <div>No logged exercises yet.</div>
+        <div class="faint" style="margin-top:8px;">Finish a workout and your progress will show up here.</div>
+      </div>`;
   return `
-    <h1>History</h1>
-    <p class="subtle">${state.sessions.length} workout${state.sessions.length === 1 ? '' : 's'} completed</p>
-    ${exerciseProgressSectionHtml()}
-    <h2>Sessions</h2>
-    ${sorted.map(sessionCardHtml).join('')}
+    <button class="btn ghost small progress-back" data-tab="today">&#8249; Today</button>
+    <h1>Progress</h1>
+    ${body}
   `;
 };
-
-function sessionCardHtml(s) {
-  const expanded = expandedSessionKey === s.date;
-  return `
-    <div class="card session-card">
-      <button class="session-toggle" type="button" data-toggle-session="${s.date}" aria-expanded="${expanded}">
-        <div class="session-main">
-          <div class="session-title">${esc(s.dayName || 'Workout ' + (s.dayIndex + 1))}</div>
-          <div class="session-meta mono">Week ${(s.weekIndex ?? 0) + 1} · ${setCount(s.exercises)} sets · ${fmtNum(totalVolume(s.exercises))} kg</div>
-        </div>
-        <span class="subtle">${fmtDate(s.date)}</span>
-        <span class="pick-chev">${expanded ? '&#9662;' : '&#9656;'}</span>
-      </button>
-      ${expanded ? `
-        <div class="session-detail">
-          ${s.exercises.map(e => `
-            <div class="ex-detail">
-              <div class="row between">
-                <span class="nm">${esc(e.name)}</span>
-                <span class="sts">${sessionExerciseStatus(e)}</span>
-              </div>
-              <div class="sts" style="margin-top:4px;">
-                ${sessionExerciseSetSummary(e)}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      ` : ''}
-    </div>
-  `;
-}
 
 /* Per-exercise top-set weight across every session that logged it, oldest
    first, so we can show a trend + PRs. */

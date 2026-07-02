@@ -188,6 +188,30 @@ function onFocusIn(e) {
 function onClick(e) {
   // A just-finished swipe shouldn't trigger a tap action.
   if (suppressNextClick) { suppressNextClick = false; return; }
+
+  if (e.target.id === 'undo-action') {
+    runPendingUndo();
+    return;
+  }
+  // One-tap quick-log in the workout bar ("80 kg × 5 ✓")
+  if (e.target.closest && e.target.closest('[data-quick-log]')) {
+    quickLogLastSet();
+    return;
+  }
+  // Exercise name tap — recent history for that exercise in a bottom sheet
+  const exHistBtn = e.target.closest && e.target.closest('[data-ex-history]');
+  if (exHistBtn) {
+    const name = exHistBtn.dataset.exHistory;
+    showSheet({ title: name, bodyHtml: exerciseHistoryHtml(name) });
+    return;
+  }
+  if (e.target.id === 'sheet-close' || e.target.id === 'sheet-backdrop') {
+    closeSheet();
+    return;
+  }
+  // A tap inside the sheet body does nothing special but must not fall
+  // through to handlers underneath.
+  if (e.target.closest && e.target.closest('.sheet')) return;
   // The reorder handle is drag-only — a stray tap on it must not select the row.
   if (e.target.closest && e.target.closest('.drag-handle')) return;
 
@@ -312,13 +336,6 @@ function onClick(e) {
     render();
     return;
   }
-  const sessToggle = e.target.closest && e.target.closest('[data-toggle-session]');
-  if (sessToggle) {
-    const key = parseInt(sessToggle.dataset.toggleSession, 10);
-    expandedSessionKey = (expandedSessionKey === key) ? null : key;
-    render();
-    return;
-  }
   const progToggle = e.target.closest && e.target.closest('[data-toggle-progress]');
   if (progToggle) {
     const name = progToggle.dataset.toggleProgress; // dataset auto-decodes the esc()'d entities
@@ -388,6 +405,15 @@ function onClick(e) {
     const row = toggleTpl.closest('[data-template-id]');
     const id = row && row.dataset.templateId;
     expandedTemplateId = (expandedTemplateId === id) ? null : id;
+    render();
+    return;
+  }
+  // Collapsible Settings sections (Ready-made programs, Exercise Library)
+  const settingsToggle = e.target.closest && e.target.closest('[data-toggle-settings]');
+  if (settingsToggle) {
+    const key = settingsToggle.dataset.toggleSettings;
+    if (key === 'templates') settingsTemplatesOpen = !settingsTemplatesOpen;
+    if (key === 'library') settingsLibraryOpen = !settingsLibraryOpen;
     render();
     return;
   }
@@ -559,16 +585,6 @@ function onClick(e) {
     render();
     return;
   }
-  // Reopen a completed exercise in the Completed section to edit its logged sets
-  const toggleDone = e.target.closest && e.target.closest('[data-toggle-done]');
-  if (toggleDone) {
-    const idx = +toggleDone.dataset.toggleDone;
-    maybeFlushLinger(idx);
-    expandedExIdx = (expandedExIdx === idx) ? null : idx;
-    editingSet = null;
-    render();
-    return;
-  }
   const editEl = e.target.closest && e.target.closest('[data-edit-set]');
   if (editEl) {
     const [exIdx, setIdx] = editEl.dataset.editSet.split(',').map(Number);
@@ -677,6 +693,10 @@ function onInput(e) {
 function onKeydown(e) {
   if (e.key === 'Escape' && document.querySelector('.ex-menu-wrap.open')) {
     closeExMenus();
+    return;
+  }
+  if (e.key === 'Escape' && sheet) {
+    closeSheet();
     return;
   }
   if (e.key === 'Enter') {

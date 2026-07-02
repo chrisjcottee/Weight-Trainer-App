@@ -432,7 +432,7 @@
   /* Active / editing weight input */
   .set-row.active .set-w,
   .set-row.editing .set-w {
-    height: 40px;
+    height: 44px;
     background: var(--card);
     border: 1.5px solid var(--accent);
     border-radius: 9px;
@@ -448,7 +448,7 @@
   /* Reps stepper inside set rows */
   .set-row .reps-stepper {
     display: flex; align-items: center; justify-content: space-between;
-    height: 40px;
+    height: 44px;
     background: var(--card);
     border-radius: 9px;
     padding: 2px;
@@ -457,7 +457,7 @@
     box-sizing: border-box;
   }
   .set-row .reps-stepper .step-btn {
-    width: 34px; height: 34px; font-size: 19px;
+    width: 40px; height: 40px; font-size: 19px;
     color: var(--accent); background: transparent;
     border: none; border-radius: 8px;
     flex-shrink: 0; cursor: pointer;
@@ -471,7 +471,7 @@
 
   /* Save / cancel buttons in active and editing rows */
   .set-row.active .log-btn {
-    height: 40px;
+    height: 44px;
     background: var(--accent); color: white;
     border: 0; border-radius: 9px;
     font-size: 19px; font-weight: 700;
@@ -589,8 +589,8 @@
     padding: 4px 4px 0; cursor: default;
   }
 
-  /* Bottom bar in workout */
-  .workout-bottom {
+  /* Unified workout bottom bar: [Finish] [rest countdown OR quick-log] */
+  #workout-bar {
     position: fixed;
     bottom: calc(var(--safe-bottom) + var(--tab-h));
     left: 0; right: 0;
@@ -598,22 +598,42 @@
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
     border-top: 1px solid var(--border);
-    padding: 12px 16px;
+    padding: 10px 16px;
     z-index: 40;
   }
-  .workout-bottom-inner { max-width: 640px; margin: 0 auto; }
+  #workout-bar .wb-inner {
+    max-width: 640px; margin: 0 auto;
+    display: flex; align-items: stretch; gap: 8px;
+  }
+  #workout-bar .btn { min-height: 48px; }
+  #workout-bar .wb-finish-compact {
+    width: auto; flex-shrink: 0;
+    padding: 10px 14px; font-size: 15px;
+    background: var(--accent-dim); color: var(--accent);
+  }
+  #workout-bar .wb-finish-compact.success { background: var(--success); color: white; }
 
-  /* Rest timer bar — sits just above the Finish bar */
-  .rest-bar {
-    position: fixed;
-    left: 0; right: 0;
-    bottom: calc(var(--safe-bottom) + var(--tab-h) + 68px);
-    z-index: 39;
-    overflow: hidden;
-    background: var(--card);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+  /* Quick-log: the active set's "last time" values, loggable in one tap */
+  .wb-quick-log {
+    flex: 1; min-height: 48px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 0; border-radius: var(--radius-sm);
+    background: var(--accent); color: white;
+    font-family: inherit; font-size: 17px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .wb-quick-log:active { transform: scale(0.98); opacity: 0.9; }
+  .wb-quick-check {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(255,255,255,0.22); font-size: 15px;
+  }
+
+  /* Rest countdown inside the bar's context slot */
+  .wb-rest {
+    flex: 1; position: relative; overflow: hidden;
+    background: var(--bg); border-radius: var(--radius-sm);
   }
   .rest-fill {
     position: absolute; inset: 0 auto 0 0;
@@ -621,36 +641,36 @@
     transition: width 1s linear;
     z-index: 0;
   }
-  .rest-bar.done .rest-fill { background: rgba(52,199,89,0.18); }
+  .wb-rest.done .rest-fill { background: rgba(52,199,89,0.18); }
   .rest-inner {
-    position: relative; z-index: 1;
-    max-width: 640px; margin: 0 auto;
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 16px;
+    position: relative; z-index: 1; height: 100%;
+    display: flex; align-items: center; gap: 6px;
+    padding: 2px 6px;
   }
   .rest-mid {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; line-height: 1.1;
   }
   .rest-label {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--text-dim);
   }
-  .rest-bar.done .rest-label { color: var(--success); }
+  .wb-rest.done .rest-label { color: var(--success); }
   .rest-time {
-    font-size: 20px; font-weight: 600;
+    font-size: 18px; font-weight: 600;
     font-variant-numeric: tabular-nums; color: var(--text);
   }
   .rest-btn {
-    border: 1px solid var(--border); background: var(--bg);
+    border: 1px solid var(--border); background: var(--card);
     color: var(--text-dim); font-family: inherit;
     font-size: 13px; font-weight: 600;
-    padding: 7px 11px; border-radius: 10px; cursor: pointer;
+    min-height: 44px; padding: 0 10px; border-radius: 10px; cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
   }
   .rest-btn:active { transform: scale(0.95); }
   .rest-btn.skip { color: var(--accent); }
-  .rest-bar.done .rest-btn.skip { background: var(--success); color: #fff; border-color: var(--success); }
+  .wb-rest.done .rest-btn.skip { background: var(--success); color: #fff; border-color: var(--success); }
 
   /* Setup */
   .day-editor {
@@ -882,6 +902,9 @@
 
   /* History — per-exercise progress rows + trend chart */
   .progress-row { flex-direction: column; align-items: stretch; padding: 0; }
+  /* Progress screen (opened from Today) */
+  .progress-back { width: auto; padding-left: 0; margin-bottom: 2px; }
+  .progress-link { flex-shrink: 0; margin-top: 6px; }
   .progress-toggle {
     display: flex; align-items: center; gap: 10px; width: 100%;
     padding: 12px 0; min-height: var(--tap-min);
@@ -1046,6 +1069,96 @@
     margin-top: 12px;
     border-top: 1px solid var(--border);
   }
+  /* Bottom sheet — slide-up panel (exercise mini-history) */
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 90;
+    display: flex; align-items: flex-end;
+  }
+  .sheet {
+    width: 100%; max-width: 640px; margin: 0 auto;
+    background: var(--card);
+    border-radius: 18px 18px 0 0;
+    padding: 8px 20px calc(16px + var(--safe-bottom));
+    max-height: 70vh; overflow-y: auto;
+    animation: sheet-in 240ms cubic-bezier(.2,.7,.2,1);
+  }
+  .sheet-grip {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: var(--border); margin: 4px auto 10px;
+  }
+  @keyframes sheet-in {
+    from { transform: translateY(40%); opacity: 0.6; }
+    to { transform: none; opacity: 1; }
+  }
+  .hist-list { border-top: 1px solid var(--border); }
+  .hist-row {
+    display: grid; grid-template-columns: 86px 1fr auto;
+    gap: 10px; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .hist-date { font-size: 13px; color: var(--text-dim); }
+  .hist-sets { font-size: 14px; font-variant-numeric: tabular-nums; min-width: 0; }
+  .hist-best { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+
+  /* Tappable exercise name on the active card (opens the history sheet) */
+  .ex-name-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    max-width: 100%; min-height: 32px;
+    border: 0; padding: 0; background: transparent;
+    font-family: inherit; font-weight: 600; color: var(--text);
+    text-align: left; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ex-name-hist { color: var(--text-faint); font-size: 14px; }
+
+  /* Undo snackbar — floats above the tab bar (and workout bar when present) */
+  #undo-bar {
+    position: fixed;
+    left: 16px; right: 16px;
+    bottom: calc(var(--safe-bottom) + var(--tab-h) + 12px);
+    max-width: 480px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--text); color: white;
+    border-radius: 12px; padding: 6px 6px 6px 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    z-index: 60;
+    animation: undo-in 200ms ease-out;
+  }
+  /* During a workout, clear the fixed Finish bar too (#undo-bar is a later
+     sibling of #app on <body>). */
+  #app.workout-mode ~ #undo-bar {
+    bottom: calc(var(--safe-bottom) + var(--tab-h) + 80px);
+  }
+  #undo-bar .undo-msg {
+    font-size: 14px; font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #undo-bar #undo-action {
+    flex-shrink: 0; min-height: 44px; padding: 0 18px;
+    border: 0; border-radius: 9px;
+    background: rgba(255, 255, 255, 0.16); color: #7cc4ff;
+    font-family: inherit; font-size: 15px; font-weight: 700;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  @keyframes undo-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* Settings: one-line stats summary + collapsible sections */
+  .stats-line { margin: -2px 0 4px; }
+  .settings-section { padding: 4px 16px; }
+  .settings-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; min-height: 48px; padding: 4px 0;
+    border: 0; background: transparent;
+    font-family: inherit; font-size: 17px; font-weight: 600; color: var(--text);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .settings-toggle .chevron { color: var(--text-faint); }
+  .settings-section-body { padding-bottom: 12px; }
   .library-row {
     display: flex;
     align-items: center;

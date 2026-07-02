@@ -7,6 +7,8 @@ function load() {
 }
 
 function migrate(s) {
+  // The History tab was folded into Today's calendar.
+  if (s.tab === 'history') s.tab = 'today';
   s.exerciseLibrary = normalizeExerciseLibrary(s);
   s.programLibrary = normalizeProgramLibrary(s);
   if (!s.activeProgramId && s.programLibrary.length) {
@@ -126,6 +128,8 @@ function normalizeExerciseLibrary(s) {
 }
 
 function save() {
+  // A later mutation commits any pending undo (see undo-bar.js).
+  if (typeof noteSaveForUndo === 'function') noteSaveForUndo();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     // Verify it actually persisted (some browsers silently accept then drop)
@@ -185,6 +189,8 @@ let selectedWeekIndex = null; // UI-only selected week on Today
 let expandedDayKey = null;    // UI-only expanded Today day, formatted as "week:day"
 let exerciseLibrarySearch = '';
 let editingExerciseLibraryId = null;
-let expandedSessionKey = null;    // History: expanded session card, keyed by session.date (stable across sort)
-let expandedProgressName = null;  // History: expanded exercise-progress row, keyed by exercise name
+let settingsTemplatesOpen = false; // Settings: "Ready-made programs" section expanded
+let settingsLibraryOpen = false;   // Settings: "Exercise Library" section expanded
+let expandedProgressName = null;  // Progress: expanded exercise-progress row, keyed by exercise name
 let modal = null;
+let sheet = null; // bottom sheet config, body-mounted like modal

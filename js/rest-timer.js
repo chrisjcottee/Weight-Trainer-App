@@ -107,36 +107,17 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && restBarVisible() && !restState.done) restTick();
 });
 
+/* The rest countdown renders inside the unified workout bar's context slot
+   (see workout-bar.js); these are thin delegates so the timer logic above
+   didn't have to change. */
 function restBarVisible() {
-  return !!document.getElementById('rest-bar');
+  return !!document.querySelector('#workout-bar .wb-rest');
 }
 
 function removeRestBar() {
-  const bar = document.getElementById('rest-bar');
-  if (bar) bar.remove();
+  if (typeof renderWorkoutBar === 'function') renderWorkoutBar();
 }
 
 function renderRestBar() {
-  let bar = document.getElementById('rest-bar');
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'rest-bar';
-    document.body.appendChild(bar);
-  }
-  const pct = restState.total ? Math.max(0, restState.remaining / restState.total) * 100 : 0;
-  const mm = Math.floor(restState.remaining / 60);
-  const ss = String(restState.remaining % 60).padStart(2, '0');
-  bar.className = restState.done ? 'rest-bar done' : 'rest-bar';
-  bar.innerHTML = `
-    <div class="rest-fill" style="width:${pct}%"></div>
-    <div class="rest-inner">
-      <button class="rest-btn" data-rest="-15" type="button" aria-label="Subtract 15 seconds">−15</button>
-      <div class="rest-mid">
-        <span class="rest-label">${restState.done ? 'Rest done' : 'Rest'}</span>
-        <span class="rest-time">${mm}:${ss}</span>
-      </div>
-      <button class="rest-btn" data-rest="15" type="button" aria-label="Add 15 seconds">+15</button>
-      <button class="rest-btn skip" data-rest="skip" type="button">${restState.done ? 'Done' : 'Skip'}</button>
-    </div>
-  `;
+  if (typeof renderWorkoutBar === 'function') renderWorkoutBar();
 }
