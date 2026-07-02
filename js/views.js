@@ -22,7 +22,9 @@ function render() {
   // The rest timer belongs to the active session, not a specific tab — keep it
   // running while you navigate, and clear it only when the session ends.
   if (!state.active && typeof stopRest === 'function') stopRest();
-  // Extra bottom padding only when the workout log (with its Finish bar) is shown.
+  // The unified bottom bar (Finish + rest/quick-log) lives on <body>.
+  if (typeof renderWorkoutBar === 'function') renderWorkoutBar();
+  // Extra bottom padding only when the workout log (with its bottom bar) is shown.
   app.classList.toggle('workout-mode', view === 'workout' && !!state.active);
   const showTabs = view === 'today' || view === 'workout' || view === 'program';
   tabs.hidden = !showTabs;

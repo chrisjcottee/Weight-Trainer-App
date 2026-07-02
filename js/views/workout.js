@@ -3,7 +3,6 @@ Views.workout = function() {
   if (!a) return workoutEmptyHtml();
   const activeIdx = currentActiveIdx();
   const linger = validLingerIdx();
-  const allResolved = a.exercises.every(exerciseIsResolved);
 
   const dots = a.exercises.map((e, i) => {
     const done = exerciseIsComplete(e);
@@ -48,11 +47,6 @@ Views.workout = function() {
     </div>
     ${topCard}
     ${completedCard}
-    <div class="workout-bottom">
-      <div class="workout-bottom-inner">
-        <button class="btn ${allResolved ? 'success' : ''}" id="finish-workout">${allResolved ? 'Finish Workout ✓' : 'Finish Workout'}</button>
-      </div>
-    </div>
   `;
 };
 

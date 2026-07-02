@@ -193,6 +193,11 @@ function onClick(e) {
     runPendingUndo();
     return;
   }
+  // One-tap quick-log in the workout bar ("80 kg × 5 ✓")
+  if (e.target.closest && e.target.closest('[data-quick-log]')) {
+    quickLogLastSet();
+    return;
+  }
   // The reorder handle is drag-only — a stray tap on it must not select the row.
   if (e.target.closest && e.target.closest('.drag-handle')) return;
 

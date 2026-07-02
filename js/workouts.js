@@ -547,6 +547,22 @@ function saveEditedSet(row) {
   render();
 }
 
+// One-tap quick-log from the bottom bar: fill the active row with its
+// "last time" values and log it — same path as the Last chip + ✓.
+function quickLogLastSet() {
+  const row = document.querySelector('.set-row.active');
+  const info = quickLogInfo();
+  if (!row || !info) return;
+  const w = row.querySelector('.set-w');
+  const rHidden = row.querySelector('.set-r');
+  const rDisplay = row.querySelector('.reps-stepper .step-val');
+  if (w) w.value = String(info.weight);
+  if (rHidden) rHidden.value = String(info.reps);
+  if (rDisplay) rDisplay.textContent = String(info.reps);
+  row.dataset.dirty = '1';
+  logCurrentSet(row);
+}
+
 function logCurrentSet(row) {
   if (!row || !state.active) return;
   const w = parseFloat(row.querySelector('.set-w').value);
